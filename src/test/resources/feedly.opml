@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+    <head>
+        <title>null subscriptions in feedly Cloud</title>
+    </head>
+    <body>
+        <outline text="Listen Subscriptions" title="Listen Subscriptions">
+            <outline type="rss" text="MDS-CLUB" title="MDS-CLUB" xmlUrl="http://mds-club.ru/cgi-bin/index.cgi?r=85s&amp;sbr=2"/>
+            <outline type="rss" text="MDS-NEW" title="MDS-NEW" xmlUrl="http://m-d-s.podfm.ru/rss/" htmlUrl="http://m-d-s.podfm.ru"/>
+        </outline>
+    </body>
+</opml>

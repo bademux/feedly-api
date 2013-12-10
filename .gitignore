@@ -1,6 +1,12 @@
-*.class
-
-# Package Files #
-*.jar
-*.war
-*.ear
+.gradle/
+.idea/
+out/
+build/
+*~
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings
+test_credentials.properties

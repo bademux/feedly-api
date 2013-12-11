@@ -33,7 +33,7 @@ import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.oauth2.FeedlyTokenResponse;
 import org.github.bademux.feedly.api.service.DevFeedly;
-import org.github.bademux.feedly.api.service.DevFeedlyAuthorizationCodeFlow;
+import org.github.bademux.feedly.api.oauth2.DevFeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -57,7 +57,7 @@ public abstract class AbstractIntegrationTest {
   public void setUp() throws IOException {
     FeedlyCredential credential = login();
     //setup Feedly service
-    service = new DevFeedly.Builder(httpTransport, jsonFactory, credential).build();
+    service = new DevFeedly.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).build();
   }
 
   public void cleanUp() throws IOException {
@@ -71,12 +71,13 @@ public abstract class AbstractIntegrationTest {
     }
 
     List<Tag> tags = service.tags().list().execute();
-    if(!tags.isEmpty()) {
+    if (!tags.isEmpty()) {
       service.tags().deteteByTag(tags).execute();
     }
   }
 
-  public static Subscription newSubscriptionWithCategory(Feedly service, String feedUrl) throws IOException {
+  public static Subscription newSubscriptionWithCategory(Feedly service, String feedUrl)
+      throws IOException {
     Subscription subscription = new Subscription(feedUrl, "Test");
     subscription.addCategory(service.newCategory("Test1"));
     subscription.addCategory(service.newCategory("Test2"));
@@ -89,14 +90,19 @@ public abstract class AbstractIntegrationTest {
     TEST_USER = checkNotNull(test_prop.getProperty("wordpress.user"));
     TEST_PASSWORD = checkNotNull(test_prop.getProperty("wordpress.password"));
 
+    //init data store
+    if (DATA_STORE_FACTORY == null) {
+      DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
+    }
+
     //login
-    Properties prop = load("user_secrets.properties");
-    String clientId = checkNotNull(prop.getProperty("feedly.client_id"));
-    String clientSecret = checkNotNull(prop.getProperty("feedly.client_secret"));
+    Properties secrets = load("user_secrets.properties");
+    String clientId = checkNotNull(secrets.getProperty("feedly.client_id"));
+    String clientSecret = checkNotNull(secrets.getProperty("feedly.client_secret"));
     LOG.info("Using client_id:" + clientId + ", client_secret:" + clientSecret);
     FeedlyAuthorizationCodeFlow flow = new DevFeedlyAuthorizationCodeFlow.Builder(
-        httpTransport, jsonFactory, clientId, clientSecret)
-        .setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR)).build();
+        HTTP_TRANSPORT, JSON_FACTORY, clientId, clientSecret)
+        .setDataStoreFactory(DATA_STORE_FACTORY).build();
 
     FeedlyCredential credential = flow.loadCredential(TEST_USER);
     if (credential == null) {
@@ -206,16 +212,27 @@ public abstract class AbstractIntegrationTest {
   static {
     try {
       LogManager.getLogManager()
-          .readConfiguration(AbstractIntegrationTest.class.getResourceAsStream("/logging.properties"));
+          .readConfiguration(
+              AbstractIntegrationTest.class.getResourceAsStream("/logging.properties"));
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
+  /** Directory to store user credentials. */
   public static final File DATA_STORE_DIR =
       new File(AbstractIntegrationTest.class.getResource("/").getPath(), "tmp");
-//      new java.io.File(System.getProperty("user.home"), ".store/feedly-api");
 
-  static final HttpTransport httpTransport = new NetHttpTransport();
-  static final JsonFactory jsonFactory = new GsonFactory();
+  /**
+   * Global instance of the {@link com.google.api.client.util.store.DataStoreFactory}. The best
+   * practice is to make it a single
+   * globally shared instance across your application.
+   */
+  protected static FileDataStoreFactory DATA_STORE_FACTORY;
+
+  /** Global instance of the HTTP transport. */
+  protected static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+
+  /** Global instance of the JSON factory. */
+  protected static final JsonFactory JSON_FACTORY = new GsonFactory();
 }

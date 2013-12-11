@@ -1,1 +1,2 @@
-rootProject.name = 'feedly-api'
+rootProject.name = 'feedly'
+include 'feedly-api', 'feedly-console-manager'

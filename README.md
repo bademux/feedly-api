@@ -1,7 +1,7 @@
 Feedly Java API
 ==========
 
-The API Lib is hightly inspired and based on Google API libs.
+The API Lib is highly inspired and based on Google API libs.
 There are some JUnit Integration Test. You can treat them as examples.
 
 Features planned in nearest future:

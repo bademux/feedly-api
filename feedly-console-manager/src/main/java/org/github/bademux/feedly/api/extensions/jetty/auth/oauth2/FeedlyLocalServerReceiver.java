@@ -107,7 +107,7 @@ public final class FeedlyLocalServerReceiver implements VerificationCodeReceiver
       Throwables.propagateIfPossible(e);
       throw new IOException(e);
     }
-    return "http://" + host; //+ ":" + port;
+    return "http://" + host + ":" + port;
   }
 
   @Override

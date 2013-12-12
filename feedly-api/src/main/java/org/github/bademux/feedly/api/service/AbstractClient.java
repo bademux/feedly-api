@@ -17,6 +17,8 @@
 
 package org.github.bademux.feedly.api.service;
 
+import com.google.api.client.auth.oauth2.RefreshTokenRequest;
+import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
@@ -25,20 +27,19 @@ import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.util.ObjectParser;
 import com.google.api.client.util.Preconditions;
 
-import java.util.logging.Logger;
+import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
+
+import java.io.IOException;
 
 /** Abstract thread-safe client. */
 public abstract class AbstractClient {
-
-  static final Logger LOGGER = Logger.getLogger(AbstractClient.class.getName());
 
   /** The request factory for connections to the server. */
   private final HttpRequestFactory requestFactory;
 
   /**
    * Root URL of the service, for example {@code "https://www.googleapis.com/"}. Must be
-   * URL-encoded
-   * and must end with a "/".
+   * URL-encoded and must end with a "/".
    */
   private final String rootUrl;
 
@@ -111,23 +112,17 @@ public abstract class AbstractClient {
     return objectParser;
   }
 
-  /**
-   * Returns whether discovery pattern checks should be suppressed on required parameters.
-   */
+  /** Returns whether discovery pattern checks should be suppressed on required parameters. */
   public final boolean getSuppressPatternChecks() {
     return suppressPatternChecks;
   }
 
-  /**
-   * Returns whether discovery required parameter checks should be suppressed.
-   */
+  /** Returns whether discovery required parameter checks should be suppressed. */
   public final boolean getSuppressRequiredParameterChecks() {
     return suppressRequiredParameterChecks;
   }
 
-  /**
-   * If the specified root URL does not end with a "/" then a "/" is added to the end.
-   */
+  /** If the specified root URL does not end with a "/" then a "/" is added to the end. */
   static String normalizeRootUrl(String rootUrl) {
     Preconditions.checkNotNull(rootUrl, "root URL cannot be null.");
     if (!rootUrl.endsWith("/")) {
@@ -157,11 +152,28 @@ public abstract class AbstractClient {
     return servicePath;
   }
 
-  /**
-   * Returns the JSON Factory.
-   */
+  /** Returns the JSON Factory. */
   public JsonFactory getJsonFactory() {
     return objectParser.getJsonFactory();
+  }
+
+  /** Log out current user from service */
+  public void clearCredential() throws IOException {
+    FeedlyCredential credential = (FeedlyCredential) requestFactory.getInitializer();
+    if(credential.getRefreshToken() == null){
+      return;
+    }
+    try {
+      //change and foget refresh token
+      new RefreshTokenRequest(requestFactory.getTransport(), getJsonFactory(),
+                              new GenericUrl(credential.getTokenServerEncodedUrl()),
+                              credential.getRefreshToken())
+          .setClientAuthentication(credential.getClientAuthentication())
+          .setRequestInitializer(requestFactory.getInitializer()).execute();
+    } finally {
+      //clean up credential
+      credential.setRefreshToken(null);
+    }
   }
 
   /**
@@ -213,7 +225,7 @@ public abstract class AbstractClient {
     /** Builds a new instance of {@link AbstractClient}. */
     public abstract AbstractClient build();
 
-    /**  Returns the HTTP transport. */
+    /** Returns the HTTP transport. */
     public final HttpTransport getTransport() {
       return transport;
     }

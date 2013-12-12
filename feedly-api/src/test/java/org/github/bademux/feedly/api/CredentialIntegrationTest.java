@@ -18,6 +18,8 @@
 package org.github.bademux.feedly.api;
 
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
+import org.github.bademux.feedly.api.service.DevFeedly;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,12 +29,14 @@ import java.io.IOException;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /** Test login process */
 public class CredentialIntegrationTest extends AbstractIntegrationTest {
 
   @Before
+  @After
   public void setUp() throws IOException {
     if (DATA_STORE_DIR.exists()) {
       assertTrue(deleteDir(DATA_STORE_DIR));
@@ -61,6 +65,12 @@ public class CredentialIntegrationTest extends AbstractIntegrationTest {
     //refresh access token and check
     assertTrue(credential.refreshToken());
     assertNotEquals(accessToken, credential.getAccessToken());
+
+    //setup Feedly service
+    service = new DevFeedly.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).build();
+    //log out
+    service.clearCredential();
+    assertNull(credential.getRefreshToken());
   }
 
   public static boolean deleteDir(File dir) {

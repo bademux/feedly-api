@@ -39,18 +39,18 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 
-import static com.google.api.client.repackaged.com.google.common.base.Preconditions.checkNotNull;
+import static com.google.api.client.util.Preconditions.checkNotNull;
 import static java.lang.System.getProperty;
 
-/**
- * Console manager sample application
- *
- * Use sudo iptables -t nat -I PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 9876
- */
+/** Console manager sample application */
 public class FeedlyConMan {
 
   public static void main(String[] args) {
     String command = args.length == 2 ? args[1] : null;
+    //init service
+    if (service == null) {
+      command("auth");
+    }
 
     if (command != null) {
       command(command);
@@ -78,13 +78,18 @@ public class FeedlyConMan {
   public static void menu(String command) throws Exception {
     switch (command) {
       case "profile":
-        Profile profile = service.profile().get().execute();
+        Profile profile = checkNotNull(service, "Please authorize").profile().get().execute();
         for (Map.Entry<String, Object> entry : profile.entrySet()) {
           System.out.println(entry.getKey() + " = " + entry.getValue());
         }
         break;
       case "exit":
         System.exit(0);
+      case "logout":
+        checkNotNull(service, "Please authorize").clearCredential();
+        deleteDir(DATA_STORE_FACTORY.getDataDirectory());
+        System.out.println("Credential is cleared");
+        break;
       case "auth":
         DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
         FeedlyCredential credential = authorize();
@@ -101,8 +106,7 @@ public class FeedlyConMan {
 
   /** Authorizes the installed application to access user's protected data. */
   private static FeedlyCredential authorize() throws Exception {
-    Properties secrets = loadSecrets();
-
+    Properties secrets = load("user_secrets.properties");
     String clientId = checkNotNull(secrets.getProperty("feedly.client_id"));
     String clientSecret = checkNotNull(secrets.getProperty("feedly.client_secret"));
 
@@ -113,15 +117,25 @@ public class FeedlyConMan {
 
     // authorize
     FeedlyLocalServerReceiver receiver = new FeedlyLocalServerReceiver.Builder()
-        .setPort(9876).build();
+        .setPort(8080).build();
     return new FeedlyAuthorizationCodeInstalledApp(flow, receiver).authorize("user");
   }
 
-  private static Properties loadSecrets() throws IOException {
-    final String userSecrets = "/user_secrets.properties";
+  public static Properties load(String fileName) throws IOException {
     Properties prop = new Properties();
-    prop.load(new FileReader(FeedlyConMan.class.getResource(userSecrets).getFile()));
+    prop.load(new FileReader(FeedlyConMan.class.getResource('/' + fileName).getFile()));
     return prop;
+  }
+
+  public static boolean deleteDir(File dir) {
+    if (dir.isDirectory()) {
+      for (String children : dir.list()) {
+        if (!deleteDir(new File(dir, children))) {
+          return false;
+        }
+      }
+    }
+    return dir.delete(); // The directory is empty now and can be deleted.
   }
 
   private static Feedly service;

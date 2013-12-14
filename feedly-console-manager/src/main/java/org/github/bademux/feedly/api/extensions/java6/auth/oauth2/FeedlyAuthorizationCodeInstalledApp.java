@@ -15,12 +15,15 @@
  *               Bademus
  */
 
-package org.github.bademux.feedly.api.oauth2;
+package org.github.bademux.feedly.api.extensions.java6.auth.oauth2;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.java6.auth.oauth2.VerificationCodeReceiver;
+
+import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
+import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 
 import java.io.IOException;
 import java.util.logging.Logger;

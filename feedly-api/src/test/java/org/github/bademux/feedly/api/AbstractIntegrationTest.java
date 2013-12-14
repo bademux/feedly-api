@@ -26,14 +26,14 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 
+import org.github.bademux.feedly.api.dev.oauth2.DevFeedlyAuthorizationCodeFlow;
+import org.github.bademux.feedly.api.dev.service.DevFeedly;
 import org.github.bademux.feedly.api.model.Category;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.model.Tag;
 import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.oauth2.FeedlyTokenResponse;
-import org.github.bademux.feedly.api.service.DevFeedly;
-import org.github.bademux.feedly.api.oauth2.DevFeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;

@@ -23,13 +23,13 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 
+import org.github.bademux.feedly.api.dev.oauth2.DevFeedlyAuthorizationCodeFlow;
+import org.github.bademux.feedly.api.dev.service.DevFeedly;
+import org.github.bademux.feedly.api.extensions.java6.auth.oauth2.FeedlyAuthorizationCodeInstalledApp;
 import org.github.bademux.feedly.api.extensions.jetty.auth.oauth2.FeedlyLocalServerReceiver;
 import org.github.bademux.feedly.api.model.Profile;
-import org.github.bademux.feedly.api.oauth2.DevFeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
-import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeInstalledApp;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
-import org.github.bademux.feedly.api.service.DevFeedly;
 import org.github.bademux.feedly.api.service.Feedly;
 
 import java.io.File;

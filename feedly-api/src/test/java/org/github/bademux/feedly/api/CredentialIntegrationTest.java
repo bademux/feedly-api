@@ -17,8 +17,8 @@
 
 package org.github.bademux.feedly.api;
 
+import org.github.bademux.feedly.api.dev.service.DevFeedly;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
-import org.github.bademux.feedly.api.service.DevFeedly;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

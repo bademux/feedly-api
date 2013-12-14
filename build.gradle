@@ -1,16 +1,10 @@
 allprojects {
-    apply plugin: 'java'
     apply plugin: 'idea'
 }
 
 subprojects {
     repositories {
         mavenCentral()
-    }
-
-    configurations {
-        provided
-        provided.extendsFrom(compile)
     }
 
     idea {
@@ -22,7 +16,6 @@ subprojects {
             excludeDirs += file('spec-files')
             inheritOutputDirs = false
             outputDir = file('build')
-            scopes.PROVIDED.plus += configurations.provided
         }
         project {
             jdkName = '1.7'

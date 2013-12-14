@@ -10,3 +10,4 @@ build/
 .project
 .settings
 test_credentials.properties
+local.properties

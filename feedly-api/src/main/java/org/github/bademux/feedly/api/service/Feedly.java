@@ -895,7 +895,7 @@ public class Feedly extends AbstractClient {
 
       public Entries addFields(final String field) {
         if (fields == null) {
-          fields = new ArrayList<>();
+          fields = new ArrayList<String>();
         }
         fields.add(field);
         return this;

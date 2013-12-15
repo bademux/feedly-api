@@ -1,8 +1,6 @@
-allprojects {
-    apply plugin: 'idea'
-}
-
 subprojects {
+    apply plugin: 'idea'
+
     repositories {
         mavenCentral()
     }
@@ -11,14 +9,7 @@ subprojects {
         module {
             downloadJavadoc = true
             downloadSources = true
-            excludeDirs += file('out')
-            excludeDirs += file('misc')
-            excludeDirs += file('spec-files')
-            inheritOutputDirs = false
-            outputDir = file('build')
         }
-        project {
-            jdkName = '1.7'
-        }
+        project { jdkName = '1.7' }
     }
 }

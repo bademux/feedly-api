@@ -9,5 +9,4 @@ build/
 .classpath
 .project
 .settings
-test_credentials.properties
 local.properties

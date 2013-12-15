@@ -19,14 +19,8 @@ configurations {
 }
 
 idea {
-    module {
-        scopes.PROVIDED.plus += configurations.provided
-    }
-    project {
-        languageLevel = '1.6'
-    }
+    module { scopes.PROVIDED.plus += configurations.provided }
+    project { languageLevel = '1.6' }
 }
 
-test {
-    systemProperties 'java.util.logging.config.file': 'logging.properties'
-}
+test { systemProperties 'java.util.logging.config.file': 'logging.properties' }

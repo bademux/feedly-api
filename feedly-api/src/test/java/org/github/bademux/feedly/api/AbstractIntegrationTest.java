@@ -86,14 +86,9 @@ public abstract class AbstractIntegrationTest {
   }
 
   public FeedlyCredential login() throws IOException {
-    Properties test_prop = load("test_credentials.properties");
+    Properties test_prop = load("test_credential.properties");
     TEST_USER = checkNotNull(test_prop.getProperty("wordpress.user"));
     TEST_PASSWORD = checkNotNull(test_prop.getProperty("wordpress.password"));
-
-    //init data store
-    if (DATA_STORE_FACTORY == null) {
-      DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
-    }
 
     //login
     Properties secrets = load("user_secrets.properties");
@@ -102,7 +97,7 @@ public abstract class AbstractIntegrationTest {
     LOG.info("Using client_id:" + clientId + ", client_secret:" + clientSecret);
     FeedlyAuthorizationCodeFlow flow = new DevFeedlyAuthorizationCodeFlow.Builder(
         HTTP_TRANSPORT, JSON_FACTORY, clientId, clientSecret)
-        .setDataStoreFactory(DATA_STORE_FACTORY).build();
+        .setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR)).build();
 
     FeedlyCredential credential = flow.loadCredential(TEST_USER);
     if (credential == null) {
@@ -120,9 +115,9 @@ public abstract class AbstractIntegrationTest {
     LOG.info("Fetch new access_token");
     AuthorizationCodeRequestUrl oauthUrlObject = flow.newAuthorizationUrl()
         .setRedirectUri(REDIRECT_URI_LOCAL).setState("com.feedly.developer.test-state");
-    String oauthUrl = oauthUrlObject.build();
-    LOG.info("OAuth2 Url: " + oauthUrl);
-    String responseUrlStr = authWithWordpress(TEST_USER, TEST_PASSWORD, oauthUrl);
+    String requestUrl = oauthUrlObject.build();
+    LOG.info("OAuth2 Url: " + requestUrl);
+    String responseUrlStr = authWithWordpress(TEST_USER, TEST_PASSWORD, requestUrl);
 
     // direct the end-user's browser to an authorization page to grant access to their protected data.
     AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(responseUrlStr);
@@ -222,13 +217,6 @@ public abstract class AbstractIntegrationTest {
   /** Directory to store user credentials. */
   public static final File DATA_STORE_DIR =
       new File(AbstractIntegrationTest.class.getResource("/").getPath(), "tmp");
-
-  /**
-   * Global instance of the {@link com.google.api.client.util.store.DataStoreFactory}. The best
-   * practice is to make it a single
-   * globally shared instance across your application.
-   */
-  protected static FileDataStoreFactory DATA_STORE_FACTORY;
 
   /** Global instance of the HTTP transport. */
   protected static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();

@@ -9,9 +9,7 @@ dependencies {
     compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
 }
 
-idea {
-    project {
-        mainClassName = "org.github.bademux.feedly.conman.FeedlyConMan"
-        languageLevel = '1.7'
-    }
+idea.project {
+    mainClassName = "org.github.bademux.feedly.conman.FeedlyConMan"
+    languageLevel = '1.7'
 }

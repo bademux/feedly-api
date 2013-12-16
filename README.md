@@ -6,8 +6,7 @@ There are some JUnit Integration Test. You can treat them as examples.
 
 Features planned in nearest future:
 * Fixes\Enhancements
-* Documentation\JUnit tests
-* AndroidLoginActivity based on WebKit along with sample RSS application
+* More Documentation\JUnit tests
 * Maven repo?
 
 Warning: Library API isn't stable yet!

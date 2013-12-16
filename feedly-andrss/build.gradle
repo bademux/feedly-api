@@ -1,0 +1,48 @@
+apply plugin: 'android'
+
+dependencies {
+    compile 'com.android.support:support-v4:18.0.0'
+    //feedly-api
+    compile project(':feedly-api')
+
+    //google dependencies
+    compile "com.google.http-client:google-http-client-android:$versionGoogleClient"
+}
+
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.6.+'
+    }
+}
+
+idea.project { languageLevel = '1.7' }
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "19.0.0"
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 19
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+    buildTypes {
+        release {
+            runProguard false
+            proguardFile getDefaultProguardFile('proguard-android.txt')
+        }
+    }
+    productFlavors {
+        defaultFlavor {
+            proguardFile 'proguard-rules.txt'
+        }
+    }
+}

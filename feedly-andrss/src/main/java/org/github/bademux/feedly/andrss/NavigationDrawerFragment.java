@@ -170,9 +170,9 @@ public class NavigationDrawerFragment extends Fragment {
   public void onAttach(Activity activity) {
     super.onAttach(activity);
     try {
-      mCallbacks = (NavigationDrawerCallbacks) activity;
+      mCallbacks = (OnFragmentInteractionListener) activity;
     } catch (ClassCastException e) {
-      throw new ClassCastException("Activity must implement NavigationDrawerCallbacks.");
+      throw new ClassCastException("Activity must implement OnFragmentInteractionListener.");
     }
   }
 
@@ -256,7 +256,7 @@ public class NavigationDrawerFragment extends Fragment {
   /**
    * A pointer to the current callbacks instance (the Activity).
    */
-  private NavigationDrawerCallbacks mCallbacks;
+  private OnFragmentInteractionListener mCallbacks;
 
   /**
    * Helper component that ties the action bar to the navigation drawer.
@@ -274,7 +274,7 @@ public class NavigationDrawerFragment extends Fragment {
   /**
    * Callbacks interface that all activities using this fragment must implement.
    */
-  public static interface NavigationDrawerCallbacks {
+  public static interface OnFragmentInteractionListener {
 
     /**
      * Called when an item in the navigation drawer is selected.

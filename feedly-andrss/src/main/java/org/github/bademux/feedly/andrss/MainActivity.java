@@ -3,7 +3,6 @@ package org.github.bademux.feedly.andrss;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
@@ -17,41 +16,52 @@ import android.widget.Toast;
 
 import org.github.bademux.feedly.andrss.util.FeedlyUtil;
 import org.github.bademux.feedly.andrss.util.ProcessDialogAsyncTask;
-import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 
 import java.io.IOException;
 
 public class MainActivity extends Activity
-    implements NavigationDrawerFragment.NavigationDrawerCallbacks {
+    implements NavigationDrawerFragment.OnFragmentInteractionListener,
+               AuthInfoFragment.OnFragmentInteractionListener {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
-
-    mNavigationDrawerFragment = (NavigationDrawerFragment)
-        getFragmentManager().findFragmentById(R.id.navigation_drawer);
-    mTitle = getTitle();
-
-    // Set up the drawer.
-    mNavigationDrawerFragment.setUp(
-        R.id.navigation_drawer, (DrawerLayout) findViewById(R.id.drawer_layout));
-
     try {
       mFeedlyUtil = new FeedlyUtil(this, getString(R.string.client_id),
                                    getString(R.string.client_secret));
     } catch (IOException e) {
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
+
+    setContentView(R.layout.activity_main);
+
+    initNavigationDrawer();
+  }
+
+  private void initNavigationDrawer() {
+    mTitle = getTitle();
+
+    // Set up the drawer.
+    mNavigationDrawerFragment = (NavigationDrawerFragment)
+        getFragmentManager().findFragmentById(R.id.navigation_drawer);
+
+    DrawerLayout drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+    mNavigationDrawerFragment.setUp(R.id.navigation_drawer, drawerLayout);
   }
 
   @Override
   public void onNavigationDrawerItemSelected(int position) {
     // update the main content by replacing fragments
-    FragmentManager fragmentManager = getFragmentManager();
-    fragmentManager.beginTransaction()
-        .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
-        .commit();
+    getFragmentManager().beginTransaction().
+        replace(R.id.container, getContainerFragment(position)).commit();
+  }
+
+  protected Fragment getContainerFragment(int position) {
+    if (isAuthenticated()) {
+      return PlaceholderFragment.newInstance(position + 1);
+    }
+
+    return new AuthInfoFragment();
   }
 
   @Override
@@ -79,6 +89,7 @@ public class MainActivity extends Activity
       protected Void doInBackground(final Void... params) {
         try {
           mFeedlyUtil.logout();
+          onNavigationDrawerItemSelected(0);
         } catch (Exception e) {
           Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -92,15 +103,16 @@ public class MainActivity extends Activity
   public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
     if (requestCode == FeedlyWebAuthActivity.REQUEST_CODE
         && resultCode == Activity.RESULT_OK) {
-      new ProcessDialogAsyncTask<Void, FeedlyCredential>(this) {
+      new ProcessDialogAsyncTask<Void, Void>(this) {
         @Override
-        protected FeedlyCredential doInBackground(final Void... params) {
+        protected Void doInBackground(final Void... params) {
           try {
-            return mFeedlyUtil.processResponse(FeedlyWebAuthActivity.getResponceUrl(data));
+            mFeedlyUtil.processResponse(FeedlyWebAuthActivity.getResponceUrl(data));
+            onNavigationDrawerItemSelected(0);
           } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
-            return null;
           }
+          return null;
         }
       }.execute();
       return;
@@ -126,7 +138,6 @@ public class MainActivity extends Activity
     actionBar.setDisplayShowTitleEnabled(true);
     actionBar.setTitle(mTitle);
   }
-
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
@@ -188,8 +199,7 @@ public class MainActivity extends Activity
       return fragment;
     }
 
-    public PlaceholderFragment() {
-    }
+    public PlaceholderFragment() {}
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -203,8 +213,7 @@ public class MainActivity extends Activity
     @Override
     public void onAttach(Activity activity) {
       super.onAttach(activity);
-      ((MainActivity) activity).onSectionAttached(
-          getArguments().getInt(ARG_SECTION_NUMBER));
+      ((MainActivity) activity).onSectionAttached(getArguments().getInt(ARG_SECTION_NUMBER));
     }
   }
 }

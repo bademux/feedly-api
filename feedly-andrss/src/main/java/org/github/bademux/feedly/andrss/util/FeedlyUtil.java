@@ -64,7 +64,7 @@ public final class FeedlyUtil {
 
   public synchronized void logout() throws IOException {
     service().clearCredential();
-    dataStoreFactory.getDataStore(USER_ID).clear();
+    flow.getFeedlyCredentialDataStore().clear();
   }
 
   public boolean isAuthenticated() {

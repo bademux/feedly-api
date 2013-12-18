@@ -1,5 +1,6 @@
+# exclude
 .gradle/
-.idea/
+.idea/*
 out/
 build/
 *~
@@ -10,3 +11,6 @@ build/
 .project
 .settings
 local.properties
+
+# but include
+!.idea/copyright

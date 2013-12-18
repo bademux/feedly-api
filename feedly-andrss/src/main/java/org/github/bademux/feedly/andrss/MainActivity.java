@@ -18,7 +18,7 @@ import java.io.IOException;
 public class MainActivity extends Activity
     implements NavigationDrawerFragment.OnFragmentInteractionListener,
                AuthInfoFragment.OnFragmentInteractionListener,
-               FeedFragment.OnFragmentInteractionListener {
+               FeedListFragment.OnFragmentInteractionListener {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +55,7 @@ public class MainActivity extends Activity
 
   protected Fragment getContainerFragment(int position) {
     if (isAuthenticated()) {
-      return new FeedFragment();
+      return new FeedListFragment();
     }
 
     return new AuthInfoFragment();

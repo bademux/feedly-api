@@ -28,9 +28,6 @@ import android.widget.Toast;
  */
 public class NavigationDrawerFragment extends Fragment {
 
-  public NavigationDrawerFragment() {
-  }
-
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -241,6 +238,8 @@ public class NavigationDrawerFragment extends Fragment {
   private ActionBar getActionBar() {
     return getActivity().getActionBar();
   }
+
+  public NavigationDrawerFragment() {}
 
   /**
    * Remember the position of the selected item.

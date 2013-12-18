@@ -91,7 +91,7 @@ public final class FeedlyUtil {
   /** Global instance of the JSON factory. */
   protected static final JsonFactory JSON_FACTORY = new AndroidJsonFactory();
 
-  private Feedly serviceInstance;
+  private volatile Feedly serviceInstance;
 
   private final static String USER_ID = "UUID";
 }

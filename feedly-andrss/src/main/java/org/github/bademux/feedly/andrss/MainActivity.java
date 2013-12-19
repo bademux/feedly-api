@@ -21,17 +21,26 @@ package org.github.bademux.feedly.andrss;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import org.github.bademux.feedly.andrss.db.FeedlyDbUtils;
+import org.github.bademux.feedly.andrss.db.FeedlySQLiteHelper;
 import org.github.bademux.feedly.andrss.util.FeedlyUtil;
 import org.github.bademux.feedly.andrss.util.ProcessDialogAsyncTask;
+import org.github.bademux.feedly.api.model.Subscription;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 public class MainActivity extends Activity
     implements NavigationDrawerFragment.OnFragmentInteractionListener,
@@ -50,6 +59,10 @@ public class MainActivity extends Activity
 
     setContentView(R.layout.activity_main);
 
+    //init database
+    FeedlySQLiteHelper dbHelper = new FeedlySQLiteHelper(MainActivity.this);
+    database = dbHelper.getWritableDatabase();
+
     initNavigationDrawer();
   }
 
@@ -59,9 +72,25 @@ public class MainActivity extends Activity
     // Set up the drawer.
     mNavigationDrawerFragment = (NavigationDrawerFragment)
         getFragmentManager().findFragmentById(R.id.navigation_drawer);
-
+    mNavigationDrawerFragment.setDatabase(database);
     DrawerLayout drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
     mNavigationDrawerFragment.setUp(R.id.navigation_drawer, drawerLayout);
+  }
+
+  protected AsyncTask<Void, Void, Void> fetchAndStoreSubscribtionData(final Context context) {
+    return new ProcessDialogAsyncTask<Void, Void>(context) {
+      @Override
+      protected Void doInBackground(final Void... params) {
+        try {
+          List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
+          Collection<SQLiteStatement> stms = FeedlyDbUtils.prepareInserts(database, subscriptions);
+          FeedlyDbUtils.execute(database, stms);
+        } catch (IOException e) {
+          Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+        return null;
+      }
+    };
   }
 
   @Override
@@ -84,10 +113,14 @@ public class MainActivity extends Activity
 
   @Override
   public void onLogin() {
+    if (mFeedlyUtil.isAuthenticated()) {
+      Toast.makeText(this, "Already logged in", Toast.LENGTH_SHORT).show();
+      fetchAndStoreSubscribtionData(this).execute();
+      return;
+    }
+
     try {
-      if (!mFeedlyUtil.isAuthenticated()) {
-        FeedlyWebAuthActivity.startActivityForResult(this, mFeedlyUtil.getRequestUrl());
-      }
+      FeedlyWebAuthActivity.startActivityForResult(this, mFeedlyUtil.getRequestUrl());
     } catch (IOException e) {
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
@@ -96,6 +129,7 @@ public class MainActivity extends Activity
   @Override
   public void onLogout() {
     if (!mFeedlyUtil.isAuthenticated()) {
+      Toast.makeText(this, "Already logged out", Toast.LENGTH_SHORT).show();
       return;
     }
 
@@ -128,10 +162,11 @@ public class MainActivity extends Activity
           }
           return null;
         }
+
         @Override
         protected void onPostExecute(Void result) {
           onNavigationDrawerItemSelected(0);
-          super.onPostExecute(result);
+          super.onPostExecute(null);
         }
       }.execute();
       return;
@@ -199,4 +234,6 @@ public class MainActivity extends Activity
   private CharSequence mTitle;
 
   private FeedlyUtil mFeedlyUtil;
+
+  private SQLiteDatabase database;
 }

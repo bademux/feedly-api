@@ -21,8 +21,12 @@ package org.github.bademux.feedly.andrss;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.AsyncQueryHandler;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -35,8 +39,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.CursorTreeAdapter;
+import android.widget.ExpandableListView;
+import android.widget.SimpleCursorTreeAdapter;
 import android.widget.Toast;
 
 /**
@@ -62,6 +67,19 @@ public class NavigationDrawerFragment extends Fragment {
 
     // Select either the default item (0) or the last selected item.
     selectItem(mCurrentSelectedPosition);
+
+    mAdapter = getAdapter();
+    mQueryHandler = new QueryHandler(getActivity(), mAdapter);
+  }
+
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+
+    // Null out the group cursor. This will cause the group cursor and all of the child cursors
+    // to be closed.
+    mAdapter.changeCursor(null);
+    mAdapter = null;
   }
 
   @Override
@@ -74,20 +92,51 @@ public class NavigationDrawerFragment extends Fragment {
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
-    mDrawerListView = (ListView) inflater.inflate(
+    mDrawerListView = (ExpandableListView) inflater.inflate(
         R.layout.fragment_navigation_drawer, container, false);
+
     mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         selectItem(position);
       }
     });
-    mDrawerListView.setAdapter(new ArrayAdapter<String>(
-        getActionBar().getThemedContext(),
-        android.R.layout.simple_list_item_activated_1, android.R.id.text1,
-        new String[]{getString(R.string.title_content), getString(R.string.title_auth),}));
     mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
+//    mDrawerListView.setAdapter(mAdapter);
+//    mDrawerListView.setAdapter(new ArrayAdapter<String>(
+//        getActionBar().getThemedContext(),
+//        android.R.layout.simple_list_item_activated_1, android.R.id.text1,
+//        new String[]{getString(R.string.title_content), getString(R.string.title_auth),}));
     return mDrawerListView;
+  }
+
+  private CursorTreeAdapter getAdapter() {
+    // Note that the constructor does not take a Cursor. This is done to avoid querying the
+    // database on the main thread.
+    return new SimpleCursorTreeAdapter(getActivity(), null,
+                                       android.R.layout.simple_expandable_list_item_1,
+                                       new String[]{"DISPLAY_NAME"}, // Name for group layouts
+                                       new int[]{android.R.id.text1},
+                                       android.R.layout.simple_expandable_list_item_1,
+                                       new String[]{"NUMBER"}, // Number for child layouts
+                                       new int[]{android.R.id.text1}) {
+      @Override
+      protected Cursor getChildrenCursor(final Cursor groupCursor) {
+        // Given the group, we return a cursor for all the children within that group
+
+        // Return a cursor that points to this contact's phone numbers
+//        Uri.Builder builder = Contacts.CONTENT_URI.buildUpon();
+//        ContentUris.appendId(builder, groupCursor.getLong(GROUP_ID_COLUMN_INDEX));
+//        builder.appendEncodedPath(Contacts.Data.CONTENT_DIRECTORY);
+//        Uri phoneNumbersUri = builder.build();
+//
+//        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(), phoneNumbersUri,
+//                                 PHONE_NUMBER_PROJECTION, Phone.MIMETYPE + "=?",
+//                                 new String[] { Phone.CONTENT_ITEM_TYPE }, null);
+
+        return null;
+      }
+    };
   }
 
   public boolean isDrawerOpen() {
@@ -176,8 +225,8 @@ public class NavigationDrawerFragment extends Fragment {
     if (mDrawerLayout != null) {
       mDrawerLayout.closeDrawer(mFragmentContainerView);
     }
-    if (mCallbacks != null) {
-      mCallbacks.onNavigationDrawerItemSelected(position);
+    if (mListener != null) {
+      mListener.onNavigationDrawerItemSelected(position);
     }
   }
 
@@ -185,7 +234,7 @@ public class NavigationDrawerFragment extends Fragment {
   public void onAttach(Activity activity) {
     super.onAttach(activity);
     try {
-      mCallbacks = (OnFragmentInteractionListener) activity;
+      mListener = (OnFragmentInteractionListener) activity;
     } catch (ClassCastException e) {
       throw new ClassCastException("Activity must implement OnFragmentInteractionListener.");
     }
@@ -194,7 +243,7 @@ public class NavigationDrawerFragment extends Fragment {
   @Override
   public void onDetach() {
     super.onDetach();
-    mCallbacks = null;
+    mListener = null;
   }
 
   @Override
@@ -232,10 +281,10 @@ public class NavigationDrawerFragment extends Fragment {
         Toast.makeText(getActivity(), "Example action.", Toast.LENGTH_SHORT).show();
         return true;
       case R.id.action_auth:
-        mCallbacks.onLogin();
+        mListener.onLogin();
         return true;
       case R.id.action_deauth:
-        mCallbacks.onLogout();
+        mListener.onLogout();
         return true;
     }
 
@@ -259,6 +308,8 @@ public class NavigationDrawerFragment extends Fragment {
 
   public NavigationDrawerFragment() {}
 
+  public void setDatabase(final SQLiteDatabase database) { this.database = database; }
+
   /**
    * Remember the position of the selected item.
    */
@@ -273,7 +324,7 @@ public class NavigationDrawerFragment extends Fragment {
   /**
    * A pointer to the current callbacks instance (the Activity).
    */
-  private OnFragmentInteractionListener mCallbacks;
+  private OnFragmentInteractionListener mListener;
 
   /**
    * Helper component that ties the action bar to the navigation drawer.
@@ -281,12 +332,44 @@ public class NavigationDrawerFragment extends Fragment {
   private ActionBarDrawerToggle mDrawerToggle;
 
   private DrawerLayout mDrawerLayout;
-  private ListView mDrawerListView;
+  private ExpandableListView mDrawerListView;
   private View mFragmentContainerView;
 
   private int mCurrentSelectedPosition = 0;
   private boolean mFromSavedInstanceState;
   private boolean mUserLearnedDrawer;
+
+  private SQLiteDatabase database;
+
+  private CursorTreeAdapter mAdapter;
+  private QueryHandler mQueryHandler;
+
+
+  private static final class QueryHandler extends AsyncQueryHandler {
+
+    private static final int TOKEN_GROUP = 0;
+    private static final int TOKEN_CHILD = 1;
+
+    private CursorTreeAdapter mAdapter;
+
+    public QueryHandler(Context context, CursorTreeAdapter adapter) {
+      super(context.getContentResolver());
+      this.mAdapter = adapter;
+    }
+
+    @Override
+    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+      switch (token) {
+        case TOKEN_GROUP:
+          mAdapter.setGroupCursor(cursor);
+          return;
+        case TOKEN_CHILD:
+          int groupPosition = (Integer) cookie;
+          mAdapter.setChildrenCursor(groupPosition, cursor);
+          return;
+      }
+    }
+  }
 
   /**
    * Callbacks interface that all activities using this fragment must implement.

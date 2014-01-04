@@ -91,6 +91,7 @@ public class FeedlyConMan {
         checkNotNull(service, "Please authorize").clearCredential();
         deleteDir(DATA_STORE_FACTORY.getDataDirectory());
         System.out.println("Credential is cleared");
+        service = null;
         break;
       case "auth":
         DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);

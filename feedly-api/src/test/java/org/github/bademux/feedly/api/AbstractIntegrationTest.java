@@ -204,11 +204,13 @@ public abstract class AbstractIntegrationTest {
   //init logger and markAs conf
   private final static Logger LOG = Logger.getLogger(AbstractIntegrationTest.class.getSimpleName());
 
+  //Workaround for http://issues.gradle.org/browse/GRADLE-2524
   static {
     try {
       LogManager.getLogManager()
           .readConfiguration(
-              AbstractIntegrationTest.class.getResourceAsStream("/logging.properties"));
+              AbstractIntegrationTest.class.getResourceAsStream("/logging.properties")
+          );
     } catch (IOException e) {
       e.printStackTrace();
     }

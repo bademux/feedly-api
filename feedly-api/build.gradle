@@ -15,6 +15,7 @@ dependencies {
 
 idea.project { languageLevel = '1.6' }
 
+//Unused, see http://issues.gradle.org/browse/GRADLE-2524 . woradounded in org.github.bademux.feedly.api.AbstractIntegrationTest (static section)
 test.systemProperties.put('java.util.logging.config.file', 'logging.properties')
 
 //temporary workaround for "resources not found" cos resulting jar has all resources doubled

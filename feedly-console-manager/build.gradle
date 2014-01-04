@@ -13,3 +13,8 @@ idea.project {
     mainClassName = "org.github.bademux.feedly.conman.FeedlyConMan"
     languageLevel = '1.7'
 }
+
+run.standardInput = System.in
+
+//temporary workaround for "resources not found" cos resulting jar has all resources doubled
+sourceSets.main.output.resourcesDir = sourceSets.main.output.classesDir

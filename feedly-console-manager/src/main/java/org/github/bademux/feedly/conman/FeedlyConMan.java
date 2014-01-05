@@ -35,7 +35,6 @@ import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.service.Feedly;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
@@ -48,36 +47,45 @@ import static java.lang.System.getProperty;
 public class FeedlyConMan {
 
   public static void main(String[] args) {
-    String command = args.length == 2 ? args[1] : null;
-    //init service
-    if (service == null) {
-      command("auth");
+    setShutdownHook();
+
+    //check if we have commands
+    if (args.length > 1) {
+      for (int i = 1; i < args.length; i++) {
+        try {
+          exec(args[i]);
+        } catch (Throwable t) {
+          t.printStackTrace();
+        }
+        System.exit(0);
+      }
     }
 
-    if (command != null) {
-      command(command);
-      command("exit");
-      return;
+    //init service
+    if (service == null) {
+      try {
+        exec("auth");
+      } catch (Throwable t) {
+        t.printStackTrace();
+        System.exit(0);
+      }
     }
 
     Scanner sc = new Scanner(System.in);
-    while (true) {
-      System.out.println("Enter command:");
-      command(sc.nextLine());
+    while (!isShutdown) {
+      System.out.print("Enter command: ");
+      try {
+        exec(sc.nextLine());
+      } catch (IOException e) {
+        System.err.println(e.getMessage());
+      } catch (Throwable t) {
+        t.printStackTrace();
+        isShutdown = true;
+      }
     }
   }
 
-  public static void command(String command) {
-    try {
-      menu(command);
-    } catch (IOException e) {
-      System.err.println(e.getMessage());
-    } catch (Throwable t) {
-      t.printStackTrace();
-    }
-  }
-
-  public static void menu(String command) throws Exception {
+  public static void exec(String command) throws Exception {
     switch (command) {
       case "profile":
         Profile profile = checkNotNull(service, "Please authorize").profile().get().execute();
@@ -86,7 +94,8 @@ public class FeedlyConMan {
         }
         break;
       case "exit":
-        System.exit(0);
+        isShutdown = true;
+        break;
       case "logout":
         checkNotNull(service, "Please authorize").clearCredential();
         deleteDir(DATA_STORE_FACTORY.getDataDirectory());
@@ -94,7 +103,9 @@ public class FeedlyConMan {
         service = null;
         break;
       case "auth":
-        DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
+        if (DATA_STORE_FACTORY == null) {
+          DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
+        }
         FeedlyCredential credential = authorize();
         System.out.println("Authorized\n"
                            + " UserId: " + credential.getUserId()
@@ -126,8 +137,22 @@ public class FeedlyConMan {
 
   public static Properties load(String fileName) throws IOException {
     Properties prop = new Properties();
-    prop.load(new FileReader(FeedlyConMan.class.getResource('/' + fileName).getFile()));
+    prop.load(FeedlyConMan.class.getClassLoader().getResourceAsStream(fileName));
     return prop;
+  }
+
+  private static void setShutdownHook() {
+    final Thread mainThread = Thread.currentThread();
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+        isShutdown = true;
+        try {
+          mainThread.join();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    });
   }
 
   public static boolean deleteDir(File dir) {
@@ -158,4 +183,6 @@ public class FeedlyConMan {
 
   /** Global instance of the JSON factory. */
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
+
+  private static volatile boolean isShutdown = false;
 }

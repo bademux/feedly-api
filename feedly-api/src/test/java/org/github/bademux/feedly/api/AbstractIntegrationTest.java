@@ -40,7 +40,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -137,7 +136,7 @@ public abstract class AbstractIntegrationTest {
 
   public static Properties load(String fileName) throws IOException {
     Properties prop = new Properties();
-    prop.load(new FileReader(AbstractIntegrationTest.class.getResource('/' + fileName).getFile()));
+    prop.load(AbstractIntegrationTest.class.getClassLoader().getResourceAsStream(fileName));
     return prop;
   }
 

@@ -19,8 +19,6 @@ buildscript {
     }
 }
 
-idea.project { languageLevel = '1.7' }
-
 android {
     compileSdkVersion 19
     buildToolsVersion '19.0.0'

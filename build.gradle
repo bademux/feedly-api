@@ -1,15 +1,21 @@
+apply plugin: 'idea'
+
+idea {
+    module {
+        inheritOutputDirs = false
+        downloadJavadoc = true
+        downloadSources = true
+    }
+    project {
+        jdkName = '1.7'
+        languageLevel = '1.6'
+    }
+}
+
 subprojects {
     apply plugin: 'idea'
 
     repositories {
         mavenCentral()
-    }
-
-    idea {
-        module {
-            downloadJavadoc = true
-            downloadSources = true
-        }
-        project { jdkName = '1.7' }
     }
 }

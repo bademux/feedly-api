@@ -13,10 +13,5 @@ dependencies {
     testCompile 'org.hamcrest:hamcrest-all:1.3'
 }
 
-idea.project { languageLevel = '1.6' }
-
-//Unused, see http://issues.gradle.org/browse/GRADLE-2524 . woradounded in org.github.bademux.feedly.api.AbstractIntegrationTest (static section)
+//Unused, see http://issues.gradle.org/browse/GRADLE-2524 . workarounded in org.github.bademux.feedly.api.AbstractIntegrationTest (static section)
 test.systemProperties.put('java.util.logging.config.file', 'logging.properties')
-
-//temporary workaround for "resources not found" cos resulting jar has all resources doubled
-sourceSets.test.output.resourcesDir = sourceSets.test.output.classesDir

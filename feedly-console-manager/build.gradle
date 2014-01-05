@@ -1,4 +1,11 @@
 apply plugin: 'application'
+apply plugin: 'fatjar'
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1' }
+}
+
 
 dependencies {
     //feedly-api
@@ -9,12 +16,25 @@ dependencies {
     compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
 }
 
-idea.project {
-    mainClassName = "org.github.bademux.feedly.conman.FeedlyConMan"
-    languageLevel = '1.7'
+mainClassName = 'org.github.bademux.feedly.conman.FeedlyConMan'
+
+jar{
+    manifest.attributes("Main-Class": project.mainClassName)
+    //prevent dublication for 'workaround for "resources not found"'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-run.standardInput = System.in
+fatJar{
+    destinationDir = file("${buildDir}/fatJar")
+    manifest.attributes("Main-Class": project.mainClassName)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
 
-//temporary workaround for "resources not found" cos resulting jar has all resources doubled
+run{
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
+//temporary workaround for "resources not found"
 sourceSets.main.output.resourcesDir = sourceSets.main.output.classesDir

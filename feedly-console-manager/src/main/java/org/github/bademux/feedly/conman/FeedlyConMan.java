@@ -76,7 +76,7 @@ public class FeedlyConMan {
     }
 
     Scanner sc = new Scanner(System.in);
-    while (!isShutdown) {
+    while (!IS_SHUTDOWN) {
       System.out.print("Enter command: ");
       try {
         exec(sc.nextLine());
@@ -84,7 +84,7 @@ public class FeedlyConMan {
         System.err.println(e.getMessage());
       } catch (Throwable t) {
         t.printStackTrace();
-        isShutdown = true;
+        IS_SHUTDOWN = true;
       }
     }
   }
@@ -98,7 +98,7 @@ public class FeedlyConMan {
         }
         break;
       case "exit":
-        isShutdown = true;
+        IS_SHUTDOWN = true;
         break;
       case "logout":
         checkNotNull(service, "Please authorize").clearCredential();
@@ -120,14 +120,14 @@ public class FeedlyConMan {
       case "export":
         String opmlStr = checkNotNull(service, "Please authorize").opml().exportSubscription()
             .executeAndDownloadAsString();
-        String opmlFilePath = getJarContainingFolder(FeedlyConMan.class) + '/' + opmlFileName;
+        String opmlFilePath = getJarContainingFolder(FeedlyConMan.class) + '/' + OPML_FILE_NAME;
         System.out.println(opmlFilePath);
         try (PrintWriter writer = new PrintWriter(opmlFilePath, "UTF-8")) {
           writer.write(opmlStr);
         }
         break;
       case "import":
-        File opml = new File(getJarContainingFolder(FeedlyConMan.class), opmlFileName);
+        File opml = new File(getJarContainingFolder(FeedlyConMan.class), OPML_FILE_NAME);
         checkState(opml.exists(), "Please, put '" + opml.getAbsoluteFile()
                                   + "' file to the folder with the program");
         checkNotNull(service, "Please authorize").opml().importSubscription(opml).execute();
@@ -140,8 +140,8 @@ public class FeedlyConMan {
             + "login   - authenticate the user. User will be redirected to a login web page\n"
             + "logout  - clear credential\n"
             + "profile - shows user information\n"
-            + "export  - Downloads feed list to the './" + opmlFileName + "' file\n"
-            + "import  - uploads opml './" + opmlFileName + "' file to the Feedly service\n"
+            + "export  - Downloads feed list to the './" + OPML_FILE_NAME + "' file\n"
+            + "import  - uploads opml './" + OPML_FILE_NAME + "' file to the Feedly service\n"
             + "exit    - Exits from the program. User credential still can be stored in '"
             + DATA_STORE_DIR + "' folder. use 'logout' to clear.\n"
             + "help    - shows this menu");
@@ -175,7 +175,7 @@ public class FeedlyConMan {
     final Thread mainThread = Thread.currentThread();
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
-        isShutdown = true;
+        IS_SHUTDOWN = true;
         mainThread.interrupt();
       }
     });
@@ -213,7 +213,7 @@ public class FeedlyConMan {
   /** Directory to store user credentials. */
   public static final File DATA_STORE_DIR = new File(getProperty("user.home"), ".store/feedly-api");
 
-  private static final String opmlFileName = "feedly.opml";
+  private static final String OPML_FILE_NAME = "feedly.opml";
   /**
    * Global instance of the {@link com.google.api.client.util.store.DataStoreFactory}. The best
    * practice is to make it a single
@@ -227,5 +227,5 @@ public class FeedlyConMan {
   /** Global instance of the JSON factory. */
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
 
-  private static volatile boolean isShutdown = false;
+  private static volatile boolean IS_SHUTDOWN = false;
 }

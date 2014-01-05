@@ -36,10 +36,14 @@ import org.github.bademux.feedly.api.service.Feedly;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URLDecoder;
+import java.security.CodeSource;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 
+import static com.google.api.client.repackaged.com.google.common.base.Preconditions.checkState;
 import static com.google.api.client.util.Preconditions.checkNotNull;
 import static java.lang.System.getProperty;
 
@@ -64,7 +68,7 @@ public class FeedlyConMan {
     //init service
     if (service == null) {
       try {
-        exec("auth");
+        exec("login");
       } catch (Throwable t) {
         t.printStackTrace();
         System.exit(0);
@@ -102,7 +106,7 @@ public class FeedlyConMan {
         System.out.println("Credential is cleared");
         service = null;
         break;
-      case "auth":
+      case "login":
         if (DATA_STORE_FACTORY == null) {
           DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
         }
@@ -113,8 +117,34 @@ public class FeedlyConMan {
         //setup Feedly service
         service = new DevFeedly.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).build();
         break;
+      case "export":
+        String opmlStr = checkNotNull(service, "Please authorize").opml().exportSubscription()
+            .executeAndDownloadAsString();
+        String opmlFilePath = getJarContainingFolder(FeedlyConMan.class) + '/' + opmlFileName;
+        System.out.println(opmlFilePath);
+        try (PrintWriter writer = new PrintWriter(opmlFilePath, "UTF-8")) {
+          writer.write(opmlStr);
+        }
+        break;
+      case "import":
+        File opml = new File(getJarContainingFolder(FeedlyConMan.class), opmlFileName);
+        checkState(opml.exists(), "Please, put '" + opml.getAbsoluteFile()
+                                  + "' file to the folder with the program");
+        checkNotNull(service, "Please authorize").opml().importSubscription(opml).execute();
+        break;
       default:
         System.out.println("Unknown command");
+      case "help":
+        System.out.println(
+            "Available commands:\n"
+            + "login   - authenticate the user. User will be redirected to a login web page\n"
+            + "logout  - clear credential\n"
+            + "profile - shows user information\n"
+            + "export  - Downloads feed list to the './" + opmlFileName + "' file\n"
+            + "import  - uploads opml './" + opmlFileName + "' file to the Feedly service\n"
+            + "exit    - Exits from the program. User credential still can be stored in '"
+            + DATA_STORE_DIR + "' folder. use 'logout' to clear.\n"
+            + "help    - shows this menu");
     }
   }
 
@@ -141,7 +171,7 @@ public class FeedlyConMan {
     return prop;
   }
 
-  private static void setShutdownHook() {
+  protected static void setShutdownHook() {
     final Thread mainThread = Thread.currentThread();
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
@@ -155,7 +185,23 @@ public class FeedlyConMan {
     });
   }
 
-  public static boolean deleteDir(File dir) {
+  protected static String getJarContainingFolder(Class aclass) throws Exception {
+    CodeSource codeSource = aclass.getProtectionDomain().getCodeSource();
+
+    File jarFile;
+
+    if (codeSource.getLocation() != null) {
+      jarFile = new File(codeSource.getLocation().toURI());
+    } else {
+      String path = aclass.getResource(aclass.getSimpleName() + ".class").getPath();
+      String jarFilePath = path.substring(path.indexOf(":") + 1, path.indexOf("!"));
+      jarFilePath = URLDecoder.decode(jarFilePath, "UTF-8");
+      jarFile = new File(jarFilePath);
+    }
+    return jarFile.getParentFile().getAbsolutePath();
+  }
+
+  protected static boolean deleteDir(File dir) {
     if (dir.isDirectory()) {
       for (String children : dir.list()) {
         if (!deleteDir(new File(dir, children))) {
@@ -171,6 +217,7 @@ public class FeedlyConMan {
   /** Directory to store user credentials. */
   public static final File DATA_STORE_DIR = new File(getProperty("user.home"), ".store/feedly-api");
 
+  private static final String opmlFileName = "feedly.opml";
   /**
    * Global instance of the {@link com.google.api.client.util.store.DataStoreFactory}. The best
    * practice is to make it a single

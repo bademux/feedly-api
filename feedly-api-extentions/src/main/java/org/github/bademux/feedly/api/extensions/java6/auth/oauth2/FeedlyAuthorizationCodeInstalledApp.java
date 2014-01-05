@@ -19,13 +19,12 @@
 
 package org.github.bademux.feedly.api.extensions.java6.auth.oauth2;
 
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.AuthorizationCodeRequestUrl;
+import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.java6.auth.oauth2.VerificationCodeReceiver;
-
-import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
-import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -38,18 +37,18 @@ public class FeedlyAuthorizationCodeInstalledApp extends AuthorizationCodeInstal
 
   /** {@inheritDoc} */
   public FeedlyAuthorizationCodeInstalledApp(
-      FeedlyAuthorizationCodeFlow flow, VerificationCodeReceiver receiver) {
+      AuthorizationCodeFlow flow, VerificationCodeReceiver receiver) {
     super(flow, receiver);
   }
 
   /** {@inheritDoc} */
   @Override
-  public FeedlyCredential authorize(String userId) throws IOException {
+  public Credential authorize(String userId) throws IOException {
     final VerificationCodeReceiver receiver = getReceiver();
-    final FeedlyAuthorizationCodeFlow flow = (FeedlyAuthorizationCodeFlow) getFlow();
+    final AuthorizationCodeFlow flow = getFlow();
 
     try {
-      FeedlyCredential credential = flow.loadCredential(userId);
+      Credential credential = flow.loadCredential(userId);
       if (credential != null
           && (credential.getRefreshToken() != null || credential.getExpiresInSeconds() > 60)) {
         return credential;

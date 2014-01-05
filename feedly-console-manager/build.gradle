@@ -6,14 +6,10 @@ buildscript {
     dependencies { classpath 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1' }
 }
 
-
 dependencies {
     //feedly-api
     compile project(':feedly-api')
-
-    //google dependencies
-    compile "com.google.oauth-client:google-oauth-client-jetty:$versionGoogleClient"
-    compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
+    compile project(':feedly-api-extentions')
 }
 
 mainClassName = 'org.github.bademux.feedly.conman.FeedlyConMan'

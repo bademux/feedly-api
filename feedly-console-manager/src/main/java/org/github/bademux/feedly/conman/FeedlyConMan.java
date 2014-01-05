@@ -162,7 +162,8 @@ public class FeedlyConMan {
     // authorize
     FeedlyLocalServerReceiver receiver = new FeedlyLocalServerReceiver.Builder()
         .setPort(8080).build();
-    return new FeedlyAuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+    FeedlyAuthorizationCodeInstalledApp a = new FeedlyAuthorizationCodeInstalledApp(flow, receiver);
+    return (FeedlyCredential) a.authorize("user");
   }
 
   public static Properties load(String fileName) throws IOException {

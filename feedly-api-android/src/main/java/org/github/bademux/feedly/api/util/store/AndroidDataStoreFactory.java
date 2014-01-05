@@ -30,7 +30,7 @@
  *                Bademus
  */
 
-package org.github.bademux.feedly.andrss.util;
+package org.github.bademux.feedly.api.util.store;
 
 import com.google.api.client.util.IOUtils;
 import com.google.api.client.util.Lists;

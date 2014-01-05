@@ -17,7 +17,7 @@
  *                 Bademus
  */
 
-package org.github.bademux.feedly.andrss.db;
+package org.github.bademux.feedly.api.util.db;
 
 
 import android.content.Context;
@@ -25,8 +25,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
-
-import org.github.bademux.feedly.andrss.R;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -42,29 +40,30 @@ public class FeedlySQLiteHelper extends SQLiteOpenHelper {
 
   @Override
   public void onCreate(SQLiteDatabase db) {
+    BufferedReader reader = null;
     try {
       // Open the resource
-      InputStream is = context.getResources().openRawResource(R.raw.feedly_cache_schema);
+      InputStream is = context.getResources().openRawResource(dbResId);
+      reader = new BufferedReader(new InputStreamReader(is));
+      String stm;
+      //read all
+      db.beginTransaction();
       try {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-        String stm;
-        //read all
-        db.beginTransaction();
-        try {
-          while ((stm = reader.readLine()) != null) {
-            if (!stm.trim().isEmpty()) {
-              db.execSQL(stm);
-            }
+        while ((stm = reader.readLine()) != null) {
+          if (!stm.trim().isEmpty()) {
+            db.execSQL(stm);
           }
-          db.setTransactionSuccessful();
-        } finally {
-          db.endTransaction();
         }
+        db.setTransactionSuccessful();
       } finally {
-        is.close();
+        db.endTransaction();
       }
     } catch (IOException e) {
       Log.wtf(TAG, "Can't create database", e);
+    } finally {
+      if (reader != null) {
+        try { reader.close(); } catch (IOException e) {}
+      }
     }
   }
 
@@ -106,12 +105,15 @@ public class FeedlySQLiteHelper extends SQLiteOpenHelper {
     }
   }
 
-  public FeedlySQLiteHelper(Context context) {
+  public FeedlySQLiteHelper(Context context, int dbResId) {
     super(context, DATABASE_NAME, null, DATABASE_VERSION);
     this.context = context;
+    this.dbResId = dbResId;
   }
 
   private final Context context;
+
+  private final int dbResId;
 
   private static final String DATABASE_NAME = "feedly_cache.db";
 

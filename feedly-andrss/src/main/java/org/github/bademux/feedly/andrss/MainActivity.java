@@ -32,11 +32,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import org.github.bademux.feedly.andrss.db.FeedlyDbUtils;
-import org.github.bademux.feedly.andrss.db.FeedlySQLiteHelper;
-import org.github.bademux.feedly.andrss.util.FeedlyUtil;
-import org.github.bademux.feedly.andrss.util.ProcessDialogAsyncTask;
+import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
 import org.github.bademux.feedly.api.model.Subscription;
+import org.github.bademux.feedly.api.util.FeedlyUtil;
+import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
+import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
+import org.github.bademux.feedly.api.util.db.FeedlySQLiteHelper;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -58,9 +59,8 @@ public class MainActivity extends Activity
     }
 
     setContentView(R.layout.activity_main);
-
     //init database
-    FeedlySQLiteHelper dbHelper = new FeedlySQLiteHelper(MainActivity.this);
+    FeedlySQLiteHelper dbHelper = new FeedlySQLiteHelper(this, R.raw.feedly_cache_schema);
     database = dbHelper.getWritableDatabase();
 
     initNavigationDrawer();

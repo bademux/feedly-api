@@ -1,10 +1,8 @@
 apply plugin: 'android'
 
 dependencies {
-    compile project(':feedly-api')
-
-    //google dependencies
-    compile "com.google.http-client:google-http-client-android:$versionGoogleClient"
+    compile project(':feedly-api-android')
+    
     //android dependencies
     compile 'com.android.support:support-v4:18.0.0'
 }

@@ -17,7 +17,7 @@
  *                 Bademus
  */
 
-package org.github.bademux.feedly.andrss.db;
+package org.github.bademux.feedly.api.util.db;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;

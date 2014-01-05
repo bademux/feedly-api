@@ -1,0 +1,29 @@
+apply plugin: 'android-library'
+
+dependencies {
+    compile project(':feedly-api')
+
+    //google dependencies
+    compile "com.google.http-client:google-http-client-android:$versionGoogleClient"
+}
+
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.7.+'
+    }
+}
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion '19.0.0'
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 19
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+}

@@ -16,7 +16,7 @@
  *                Bademus
  */
 
-package org.github.bademux.feedly.andrss;
+package org.github.bademux.feedly.api.util;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -43,8 +43,8 @@ public class FeedlyWebAuthActivity extends Activity {
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
     mProgressDialog = new ProgressDialog(this);
-    mProgressDialog.setTitle(getText(R.string.app_name));
-    mProgressDialog.setMessage(getText(R.string.msg_loading));
+//    mProgressDialog.setTitle(getText(android.R.string.app_name));
+//    mProgressDialog.setMessage(getText(android.R.string.msg_loading));
 
     WebView webView = createWebView(this);
     setContentView(webView);

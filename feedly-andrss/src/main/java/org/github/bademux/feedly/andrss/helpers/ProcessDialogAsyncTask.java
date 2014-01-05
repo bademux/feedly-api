@@ -30,7 +30,7 @@
  *                Bademus
  */
 
-package org.github.bademux.feedly.andrss.util;
+package org.github.bademux.feedly.andrss.helpers;
 
 import android.app.ProgressDialog;
 import android.content.Context;

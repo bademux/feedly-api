@@ -1,2 +1,2 @@
 rootProject.name = 'feedly'
-include 'feedly-api', 'feedly-api-extentions', 'feedly-console-manager', 'feedly-andrss'
+include 'feedly-api', 'feedly-api-extentions', 'feedly-api-android', 'feedly-console-manager', 'feedly-andrss'

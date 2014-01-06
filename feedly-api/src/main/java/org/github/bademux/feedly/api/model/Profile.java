@@ -34,6 +34,8 @@ public final class Profile extends GenericJson {
   @com.google.api.client.util.Key
   private String familyName;
   @com.google.api.client.util.Key
+  private String fullName;
+  @com.google.api.client.util.Key
   private String gender;
   @com.google.api.client.util.Key
   private String locale;
@@ -81,6 +83,10 @@ public final class Profile extends GenericJson {
   public String getFamilyName() { return familyName; }
 
   public void setFamilyName(final String familyName) { this.familyName = familyName; }
+
+  public String getFullName() { return fullName; }
+
+  public void setFullName(final String fullName) { this.fullName = fullName; }
 
   public String getGender() { return gender; }
 

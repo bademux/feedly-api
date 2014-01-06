@@ -34,6 +34,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
+import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
@@ -115,7 +116,7 @@ public class MainActivity extends Activity
             FeedlyDbUtils.execute(database, stms);
           } catch (Exception e) {
             toast((e instanceof HttpResponseException) ?
-                         FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
+                  FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
             Log.e(TAG, "Something goes wrong", e);
           }
         }
@@ -162,7 +163,9 @@ public class MainActivity extends Activity
         protected void doInBackground() {
           try {
             FeedlyCredential credential = mFeedlyUtil.processResponse(getResponceUrl(data));
-            toast(MainActivity.this.getText(R.string.msg_logged_as) + credential.getUserId());
+            //TODO: save current profile fore later use
+            Profile profile = mFeedlyUtil.service().profile().get().execute();
+            toast(MainActivity.this.getText(R.string.msg_logged_as) + " " + profile.getFullName());
           } catch (Exception e) {
             toast((e instanceof HttpResponseException) ?
                          FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());

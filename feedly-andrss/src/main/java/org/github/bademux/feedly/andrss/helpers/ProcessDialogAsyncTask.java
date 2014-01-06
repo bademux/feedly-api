@@ -32,25 +32,61 @@
 
 package org.github.bademux.feedly.andrss.helpers;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.os.AsyncTask;
+import android.widget.Toast;
 
 import org.github.bademux.feedly.andrss.R;
 
-public abstract class ProcessDialogAsyncTask<Params, Result>
-    extends AsyncTask<Params, Void, Result> {
+public abstract class ProcessDialogAsyncTask  extends AsyncTask<Void, Void, Void> {
 
-  private final ProgressDialog dialog;
-
-  public ProcessDialogAsyncTask(final Context context) {
-    dialog = new ProgressDialog(context);
-    dialog.setMessage(context.getString(R.string.msg_loading));
+  public ProcessDialogAsyncTask(final Activity activity) {
+    this.activity = activity;
+    mProgressDialog = new ProgressDialog(activity);
+    mProgressDialog.setTitle(activity.getText(R.string.app_name));
+    mProgressDialog.setMessage(activity.getString(R.string.msg_loading));
   }
 
   @Override
-  protected void onPreExecute() {dialog.show(); }
+  protected Void doInBackground(final Void... params) {
+    doInBackground();
+    return null;
+  }
+
+  protected void doInBackground() {}
 
   @Override
-  protected void onPostExecute(Result result) { dialog.dismiss(); }
+  protected void onPreExecute() { mProgressDialog.show(); }
+
+  @Override
+  protected void onPostExecute(Void result) {
+    onPostExecute();
+    super.onPostExecute(result);
+    mProgressDialog.dismiss();
+  }
+
+  protected void onPostExecute() {}
+
+  protected void toast(final String msg) {
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+      }
+    });
+  }
+
+  protected void toast(final int resId) {
+    activity.runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        Toast.makeText(activity, resId, Toast.LENGTH_LONG).show();
+      }
+    });
+  }
+
+  private final Activity activity;
+
+  private final ProgressDialog mProgressDialog;
 }

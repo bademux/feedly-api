@@ -15,8 +15,11 @@
 package org.github.bademux.feedly.api.util;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeResponseUrl;
+import com.google.api.client.auth.oauth2.TokenErrorResponse;
+import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.repackaged.com.google.common.base.Preconditions;
@@ -53,14 +56,14 @@ public final class FeedlyUtil {
     return flow.newAuthorizationUrl().setRedirectUri(REDIRECT_URI_LOCAL).build();
   }
 
-  public FeedlyCredential processResponse(final String responseUrlStr) throws Exception {
+  public FeedlyCredential processResponse(final String responseUrlStr) throws IOException {
     AuthorizationCodeResponseUrl responseUrl = new AuthorizationCodeResponseUrl(responseUrlStr);
     if (responseUrl.getError() != null) {
-      throw new Exception(responseUrl.getError());
+      throw new IllegalArgumentException(responseUrl.getError());
     }
     final String access_code = responseUrl.getCode();
     if (access_code == null) {
-      throw new Exception("access_code can't be null");
+      throw new IllegalArgumentException("access_code can't be null");
     }
 
     FeedlyTokenResponse token = flow.newTokenRequest(responseUrl.getCode())
@@ -76,14 +79,46 @@ public final class FeedlyUtil {
     return serviceInstance;
   }
 
-  public synchronized void logout() throws IOException {
-    service().clearCredential();
-    flow.getFeedlyCredentialDataStore().clear();
+  /**
+   * Logg out from service and remove local tokens
+   * @return true if logged out successfully
+   */
+  public synchronized boolean logout() {
+    boolean ret = true;
+    try {
+      service().clearCredential();
+    } catch (Throwable e) {
+      ret = false;
+    }
+    try {
+      flow.getFeedlyCredentialDataStore().clear();
+    } catch (Throwable e) {
+      ret = false;
+    }
+    return ret;
   }
 
   public boolean isAuthenticated() {
     return credential != null
            && credential.getAccessToken() != null && credential.getRefreshToken() != null;
+  }
+
+  /**
+   * Parse to human readable message
+   * @param e HttpResponseException
+   * @return error message
+   */
+  public static String getErrorMessage(HttpResponseException e) {
+    String msg;
+    msg = "[" + e.getStatusCode() + "] " + e.getStatusMessage();
+    if (e instanceof TokenResponseException) {
+      //TODO: impl FeedlyTokenErrorResponse with "errorId", "errorMessage", "errorCode" fields
+      TokenErrorResponse details = ((TokenResponseException) e).getDetails();
+      if (details != null && details.containsKey("errorMessage")) {
+        msg += "\n" + details.get("errorMessage");
+      }
+    }
+    return msg;
   }
 
   public FeedlyCredential getCredential() { return credential; }

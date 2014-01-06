@@ -12,5 +12,7 @@
     <string name="action_deauth">Logout</string>
     <string name="button_text">Login</string>
     <string name="msg_loading">Loading... Please wait...</string>
+    <string name="msg_logged_as">Logged as </string>
+    <string name="msg_logged_out">Logged out </string>
 
 </resources>

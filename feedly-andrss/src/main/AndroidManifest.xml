@@ -22,6 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name="org.github.bademux.feedly.andrss.FeedlyWebAuthActivity"/>
+        <activity android:name="org.github.bademux.feedly.api.util.FeedlyWebAuthActivity"/>
     </application>
 </manifest>

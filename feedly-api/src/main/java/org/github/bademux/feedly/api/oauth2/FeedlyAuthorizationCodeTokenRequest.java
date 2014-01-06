@@ -20,8 +20,6 @@
 package org.github.bademux.feedly.api.oauth2;
 
 import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
-import com.google.api.client.auth.oauth2.TokenResponse;
-import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpExecuteInterceptor;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -33,42 +31,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 /**
- * Feedly-specific implementation of the OAuth 2.0 request for an access token based on an
- * authorization code (as specified in <a href="http://code.google.com/apis/accounts/docs/OAuth2WebServer.html">Using
- * OAuth 2.0 for Web Server Applications</a>).
- *
- * <p> Use {@link com.google.api.client.auth.oauth2.Credential} to access protected resources from
- * the resource server using the {@link TokenResponse} returned by {@link #execute()}. On error, it
- * will instead throw {@link TokenResponseException}. </p>
- *
- * <p> Sample usage: </p>
- *
- * <pre>
- * static void requestAccessToken() throws IOException {
- * try {
- * FeedlyTokenResponse response =
- * new FeedlyAuthorizationCodeTokenRequest(new NetHttpTransport(), new JacksonFactory(),
- * "812741506391.apps.googleusercontent.com", "{client_secret}",
- * "4/P7q7W91a-oMsCeLvIaQm6bTrgtp7", "https://oauth2-login-demo.appspot.com/code")
- * .execute();
- * System.out.println("Access token: " + response.getAccessToken());
- * } catch (TokenResponseException e) {
- * if (e.getDetails() != null) {
- * System.err.println("Error: " + e.getDetails().getError());
- * if (e.getDetails().getErrorDescription() != null) {
- * System.err.println(e.getDetails().getErrorDescription());
- * }
- * if (e.getDetails().getErrorUri() != null) {
- * System.err.println(e.getDetails().getErrorUri());
- * }
- * } else {
- * System.err.println(e.getMessage());
- * }
- * }
- * }
- * </pre>
- *
- * <p> Implementation is not thread-safe. </p>
+ * @inheritDoc
  */
 public class FeedlyAuthorizationCodeTokenRequest extends AuthorizationCodeTokenRequest {
 

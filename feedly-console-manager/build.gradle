@@ -1,15 +1,18 @@
 apply plugin: 'application'
 apply plugin: 'fatjar'
 
-buildscript {
-    repositories { mavenCentral() }
-    dependencies { classpath 'eu.appsatori:gradle-fatjar-plugin:0.2-rc1' }
-}
-
 dependencies {
     //feedly-api
     compile project(':feedly-api')
     compile project(':feedly-api-extentions')
+
+    //google dependencies
+    compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
+}
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'eu.appsatori:gradle-fatjar-plugin:0.+' }
 }
 
 mainClassName = 'org.github.bademux.feedly.conman.FeedlyConMan'

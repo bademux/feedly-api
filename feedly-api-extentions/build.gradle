@@ -3,5 +3,4 @@ apply plugin: 'java'
 dependencies {
     //google dependencies
     compile "com.google.oauth-client:google-oauth-client-jetty:$versionGoogleClient"
-    compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
 }

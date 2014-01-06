@@ -1,16 +1,16 @@
 apply plugin: 'java'
 
 dependencies {
-    compile 'org.jsoup:jsoup:1.7.2'
 
     //google dependencies
     compile "com.google.oauth-client:google-oauth-client:$versionGoogleClient"
-    compile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
 
     //junit
-    testCompile 'junit:junit:[4,)'
-    testCompile 'xmlunit:xmlunit:1.5'
-    testCompile 'org.hamcrest:hamcrest-all:1.3'
+    testCompile "com.google.http-client:google-http-client-gson:$versionGoogleClient"
+    testCompile 'org.jsoup:jsoup:1.7.+'
+    testCompile 'junit:junit:4.+'
+    testCompile 'xmlunit:xmlunit:1.+'
+    testCompile 'org.hamcrest:hamcrest-all:1.+'
 }
 
 //Unused, see http://issues.gradle.org/browse/GRADLE-2524 . workarounded in org.github.bademux.feedly.api.AbstractIntegrationTest (static section)

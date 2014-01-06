@@ -1,20 +1,16 @@
 apply plugin: 'android'
 
 dependencies {
-    compile project(':feedly-api-android')
-    
+    compile project(':feedly-api-android') exclude module: 'httpclient'
+
     //android dependencies
-    compile 'com.android.support:support-v4:18.0.0'
+    compile 'com.android.support:support-v4:+'
 }
 
 
 buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.7.+'
-    }
+    repositories { mavenCentral() }
+    dependencies { classpath 'com.android.tools.build:gradle:0.7.+' }
 }
 
 android {

@@ -15,7 +15,5 @@ idea {
 subprojects {
     apply plugin: 'idea'
 
-    repositories {
-        mavenCentral()
-    }
+    repositories { mavenCentral() }
 }

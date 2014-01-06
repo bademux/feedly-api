@@ -4,15 +4,14 @@ dependencies {
     compile project(':feedly-api')
 
     //google dependencies
+    compile "com.google.oauth-client:google-oauth-client:$versionGoogleClient"
     compile "com.google.http-client:google-http-client-android:$versionGoogleClient"
 }
 
 
 buildscript {
     repositories { mavenCentral() }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.7.+'
-    }
+    dependencies { classpath 'com.android.tools.build:gradle:0.7.+' }
 }
 
 android {

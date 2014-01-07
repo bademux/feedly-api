@@ -12,7 +12,10 @@ dependencies {
 
 buildscript {
     repositories { mavenCentral() }
-    dependencies { classpath 'eu.appsatori:gradle-fatjar-plugin:0.+' }
+    dependencies {
+        classpath 'eu.appsatori:gradle-fatjar-plugin:0.+'
+        classpath 'net.sf.proguard:proguard-gradle:4.+'
+    }
 }
 
 mainClassName = 'org.github.bademux.feedly.conman.FeedlyConMan'
@@ -23,16 +26,41 @@ jar{
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
+run{
+    standardInput = System.in
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
 fatJar{
     destinationDir = file("${buildDir}/fatJar")
     manifest.attributes("Main-Class": project.mainClassName)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-run{
-    standardInput = System.in
-    standardOutput = System.out
-    errorOutput = System.err
+task proguard(type: proguard.gradle.ProGuardTask, dependsOn: 'fatJar') {
+    ext {
+        outDir = file("${buildDir}/proguard")
+        obfuscatedJar = "${outDir}/${jar.archiveName}"
+    }
+    outDir.mkdirs()
+
+    injars fatJar.archivePath
+    libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
+    libraryjars "${System.getProperty('java.home')}/lib/jce.jar"
+
+    outjars obfuscatedJar
+
+    printmapping "${outDir}/mappings.out"
+    configuration 'proguard.cfg'
+
+    allowshrinking = false
+    allowoptimization = false
+    allowobfuscation = false
+
+    doLast {
+        logger.lifecycle "[Proguard] Generated obfuscated JAR in ${obfuscatedJar}"
+    }
 }
 
 //temporary workaround for "resources not found"

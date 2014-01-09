@@ -31,7 +31,6 @@ import android.net.Uri;
 import android.util.Log;
 
 import org.github.bademux.feedly.api.provider.FeedlyContract;
-import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,20 +40,21 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyProvider extends ContentProvider {
 
   private static final String PROVIDER_URI = "org.github.bademux.feedly.provider.FeedlyProvider";
 
-  private static final UriMatcher sUriMatcher = new UriMatcher(Code.AUTHORITY);
+  private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
   static {
-    sUriMatcher.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
-    sUriMatcher.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
-    sUriMatcher.addURI(FeedlyContract.AUTHORITY,
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY,
                        FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
-    sUriMatcher.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
-    sUriMatcher.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
   }
 
   /** {@inheritDoc} */
@@ -62,23 +62,25 @@ public class FeedlyProvider extends ContentProvider {
   public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                       String sortOrder) {
     Log.i(TAG, "Querying database");
-    projection = FeedlyDbUtils.merge(projection, "rowid as _id");
 
     final SQLiteDatabase db = mHelper.getReadableDatabase();
-    switch (sUriMatcher.match(uri)) {
+    switch (URI_MATCHER.match(uri)) {
       case Code.FEED:
         return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.FEEDS:
-        return db.query(Feeds.TBL_NAME, projection, null, null, null, null, sortOrder);
+        return db.query(Feeds.TBL_NAME, merge(projection, "rowid as _id"),
+                        null, null, null, null, sortOrder);
       case Code.FEEDS_BY_CATEGORY:
-        projection = FeedlyDbUtils.merge(projection, FeedsByCategory.CATEGORY_ID);
-        return db.query(FeedsByCategory.TBL_NAME, projection, FeedsByCategory.CATEGORY_ID + "=?",
+        return db.query(FeedsByCategory.TBL_NAME,
+                        merge(projection, "rowid as _id", FeedsByCategory.CATEGORY_ID),
+                        FeedsByCategory.CATEGORY_ID + "=?",
                         new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.CATEGORY:
         return db.query(Categories.TBL_NAME, projection, selection, selectionArgs,
                         null, null, null);
       case Code.CATEGORIES:
-        return db.query(Categories.TBL_NAME, projection, null, null, null, null, sortOrder);
+        return db.query(Categories.TBL_NAME, merge(projection, "rowid as _id"),
+                        null, null, null, null, sortOrder);
       case Code.AUTHORITY: return null;
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
@@ -90,7 +92,7 @@ public class FeedlyProvider extends ContentProvider {
   public Uri insert(final Uri uri, final ContentValues values) {
     Log.i(TAG, "Inserting into database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
-    switch (sUriMatcher.match(uri)) {
+    switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
         return Uri.withAppendedPath(uri, valueOf(db.insert(Feeds.TBL_NAME, null, values)));
       case Code.CATEGORIES:
@@ -105,7 +107,7 @@ public class FeedlyProvider extends ContentProvider {
   public int delete(final Uri uri, final String selection, final String[] selectionArgs) {
     Log.i(TAG, "Deleting from database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
-    switch (sUriMatcher.match(uri)) {
+    switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
         return db.delete(Feeds.TBL_NAME, selection, selectionArgs);
       case Code.CATEGORIES:
@@ -121,7 +123,7 @@ public class FeedlyProvider extends ContentProvider {
                     final String selection, final String[] selectionArgs) {
     Log.i(TAG, "Updating data in database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
-    switch (sUriMatcher.match(uri)) {
+    switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
         return db.update(Feeds.TBL_NAME, values, selection, selectionArgs);
       case Code.CATEGORIES:
@@ -137,7 +139,7 @@ public class FeedlyProvider extends ContentProvider {
 
   /** {@inheritDoc} */
   @Override
-  public boolean onCreate() {mHelper = new DatabaseHelper(getContext()); return true;}
+  public boolean onCreate() { mHelper = new DatabaseHelper(getContext()); return true; }
 
   private DatabaseHelper mHelper;
 
@@ -160,6 +162,7 @@ public class FeedlyProvider extends ContentProvider {
     @Override
     public void onCreate(SQLiteDatabase db) {
       Log.i(TAG, "Creating database");
+
       db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
                  + Feeds.ID + " TEXT PRIMARY KEY,"
                  + Feeds.TITLE + " TEXT NOT NULL,"
@@ -168,8 +171,8 @@ public class FeedlyProvider extends ContentProvider {
                  + Feeds.WEBSITE + " TEXT)");
       db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.TITLE
                  + " ON " + Feeds.TBL_NAME + "(" + Feeds.TITLE + ")");
-      db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.UPDATED
-                 + " ON " + Feeds.TBL_NAME + "(" + Feeds.UPDATED + ")");
+      db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.SORTID
+                 + " ON " + Feeds.TBL_NAME + "(" + Feeds.SORTID + ")");
       db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.WEBSITE
                  + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
 
@@ -196,12 +199,6 @@ public class FeedlyProvider extends ContentProvider {
                  + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
                  + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
                  + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
-
-      //tmpdata
-      db.execSQL("INSERT INTO categories (id, label) VALUES('category/1', 'my category')");
-      db.execSQL("INSERT INTO feeds (id, title) VALUES('feed/1', 'my feed')");
-      db.execSQL(
-          "INSERT INTO feeds_categories (feed_id, category_id) VALUES('feed/1', 'category/1')");
     }
 
     /** {@inheritDoc} */

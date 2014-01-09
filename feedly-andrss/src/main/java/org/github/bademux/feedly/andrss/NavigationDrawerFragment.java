@@ -24,6 +24,7 @@ import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -41,8 +42,11 @@ import android.widget.ExpandableListView;
 import android.widget.SimpleCursorTreeAdapter;
 import android.widget.Toast;
 
-import org.github.bademux.feedly.api.provider.FeedlyContract;
 import org.github.bademux.feedly.api.util.db.QueryHandler;
+
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -104,9 +108,8 @@ public class NavigationDrawerFragment extends Fragment implements
     });
     mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
     mDrawerListView.setAdapter(mAdapter);
-    mQueryHandler.startQuery(TOKEN_GROUP, null,
-                             FeedlyContract.Categories.CONTENT_URI,
-                             new String[]{FeedlyContract.Categories.LABEL}, null, null, null);
+    mQueryHandler.startQuery(TOKEN_GROUP, null, Categories.CONTENT_URI,
+                             new String[]{Categories.LABEL, Categories.ID}, null, null, null);
     return mDrawerListView;
   }
 
@@ -119,16 +122,17 @@ public class NavigationDrawerFragment extends Fragment implements
     // The constructor does not take a Cursor - avoiding querying the db on the main thread.
     return new SimpleCursorTreeAdapter(getActivity(), null,
                                        android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{FeedlyContract.Categories.LABEL},
+                                       new String[]{Categories.LABEL, Categories.ID},
                                        new int[]{android.R.id.text1},
                                        android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{FeedlyContract.Feeds.TITLE},
+                                       new String[]{Feeds.TITLE},
                                        new int[]{android.R.id.text1}) {
       @Override
       protected Cursor getChildrenCursor(final Cursor groupCursor) {
-        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(),
-                                 FeedlyContract.Feeds.CONTENT_URI,
-                                 new String[]{FeedlyContract.Feeds.TITLE}, null, null, null);
+        String id = groupCursor.getString(groupCursor.getColumnIndex(Categories.ID));
+        Uri.Builder builder = FeedsByCategory.CONTENT_URI.buildUpon().appendPath(id);
+        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(), builder.build(),
+                                 new String[]{Feeds.TITLE}, null, null, null);
         return null;
       }
     };

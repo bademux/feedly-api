@@ -39,6 +39,7 @@ import java.util.List;
 import static java.lang.String.valueOf;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
 
 public class FeedlyProvider extends ContentProvider {
@@ -50,6 +51,8 @@ public class FeedlyProvider extends ContentProvider {
   static {
     sUriMatcher.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
     sUriMatcher.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
+    sUriMatcher.addURI(FeedlyContract.AUTHORITY,
+                       FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
     sUriMatcher.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
     sUriMatcher.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
   }
@@ -58,19 +61,22 @@ public class FeedlyProvider extends ContentProvider {
   @Override
   public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                       String sortOrder) {
-
-    projection = FeedlyDbUtils.merge(projection, "ROWID as _id");
+    Log.i(TAG, "Querying database");
+    projection = FeedlyDbUtils.merge(projection, "rowid as _id");
 
     final SQLiteDatabase db = mHelper.getReadableDatabase();
     switch (sUriMatcher.match(uri)) {
       case Code.FEED:
-        return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs,
-                        null, null, sortOrder);
+        return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.FEEDS:
         return db.query(Feeds.TBL_NAME, projection, null, null, null, null, sortOrder);
+      case Code.FEEDS_BY_CATEGORY:
+        projection = FeedlyDbUtils.merge(projection, FeedsByCategory.CATEGORY_ID);
+        return db.query(FeedsByCategory.TBL_NAME, projection, FeedsByCategory.CATEGORY_ID + "=?",
+                        new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.CATEGORY:
         return db.query(Categories.TBL_NAME, projection, selection, selectionArgs,
-                        null, null, sortOrder);
+                        null, null, null);
       case Code.CATEGORIES:
         return db.query(Categories.TBL_NAME, projection, null, null, null, null, sortOrder);
       case Code.AUTHORITY: return null;
@@ -82,6 +88,7 @@ public class FeedlyProvider extends ContentProvider {
   /** {@inheritDoc} */
   @Override
   public Uri insert(final Uri uri, final ContentValues values) {
+    Log.i(TAG, "Inserting into database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
     switch (sUriMatcher.match(uri)) {
       case Code.FEEDS:
@@ -96,6 +103,7 @@ public class FeedlyProvider extends ContentProvider {
   /** {@inheritDoc} */
   @Override
   public int delete(final Uri uri, final String selection, final String[] selectionArgs) {
+    Log.i(TAG, "Deleting from database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
     switch (sUriMatcher.match(uri)) {
       case Code.FEEDS:
@@ -111,6 +119,7 @@ public class FeedlyProvider extends ContentProvider {
   @Override
   public int update(final Uri uri, final ContentValues values,
                     final String selection, final String[] selectionArgs) {
+    Log.i(TAG, "Updating data in database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
     switch (sUriMatcher.match(uri)) {
       case Code.FEEDS:
@@ -128,7 +137,7 @@ public class FeedlyProvider extends ContentProvider {
 
   /** {@inheritDoc} */
   @Override
-  public boolean onCreate() { mHelper = new DatabaseHelper(getContext()); return true; }
+  public boolean onCreate() {mHelper = new DatabaseHelper(getContext()); return true;}
 
   private DatabaseHelper mHelper;
 
@@ -150,11 +159,12 @@ public class FeedlyProvider extends ContentProvider {
     /** {@inheritDoc} */
     @Override
     public void onCreate(SQLiteDatabase db) {
+      Log.i(TAG, "Creating database");
       db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
                  + Feeds.ID + " TEXT PRIMARY KEY,"
                  + Feeds.TITLE + " TEXT NOT NULL,"
                  + Feeds.SORTID + " TEXT,"
-                 + Feeds.UPDATED + " INTEGER NOT NULL,"
+                 + Feeds.UPDATED + " INTEGER DEFAULT 0,"
                  + Feeds.WEBSITE + " TEXT)");
       db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.TITLE
                  + " ON " + Feeds.TBL_NAME + "(" + Feeds.TITLE + ")");
@@ -178,23 +188,30 @@ public class FeedlyProvider extends ContentProvider {
                  + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
                  + "FOREIGN KEY(" + FeedsCategories.CATEGORY_ID + ") REFERENCES "
                  + Categories.TBL_NAME + "(" + Categories.ID
-                 + ") ON UPDATE CASCADE ON DELETE CASCADE)");
+                 + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+                 + "UNIQUE(" + FeedsCategories.FEED_ID + ") ON CONFLICT REPLACE,"
+                 + "UNIQUE(" + FeedsCategories.CATEGORY_ID + ") ON CONFLICT REPLACE)");
+
+      db.execSQL("CREATE VIEW " + FeedsByCategory.TBL_NAME + " AS "
+                 + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
+                 + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
+                 + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
+
+      //tmpdata
+      db.execSQL("INSERT INTO categories (id, label) VALUES('category/1', 'my category')");
+      db.execSQL("INSERT INTO feeds (id, title) VALUES('feed/1', 'my feed')");
+      db.execSQL(
+          "INSERT INTO feeds_categories (feed_id, category_id) VALUES('feed/1', 'category/1')");
     }
 
     /** {@inheritDoc} */
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-      Log.w(TAG, "Upgrading database; wiping app data");
+      Log.i(TAG, "Upgrading database; wiping app data");
       clear(db);
       onCreate(db);
       db.execSQL("VACUUM");
     }
-
-//    /** {@inheritDoc} */
-//    @Override
-//    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-//      onUpgrade(db, oldVersion, newVersion);
-//    }
 
     protected void clear(SQLiteDatabase db) {
       Cursor c = db.rawQuery("SELECT TBL_NAME FROM sqlite_master WHERE type='table'", null);
@@ -224,7 +241,7 @@ public class FeedlyProvider extends ContentProvider {
     }
 
     /** {@inheritDoc} */
-    public DatabaseHelper(Context context) {super(context, DB_NAME, null, VERSION);}
+    public DatabaseHelper(Context context) { super(context, DB_NAME, null, VERSION); }
 
     private static final String TAG = "DatabaseHelper";
   }
@@ -232,7 +249,7 @@ public class FeedlyProvider extends ContentProvider {
   private interface Code {
 
     static final int AUTHORITY = 0;
-    static final int FEEDS = 100, FEED = 101;
+    static final int FEEDS = 100, FEED = 101, FEEDS_BY_CATEGORY = 102;
     static final int CATEGORIES = 200, CATEGORY = 201;
   }
 }

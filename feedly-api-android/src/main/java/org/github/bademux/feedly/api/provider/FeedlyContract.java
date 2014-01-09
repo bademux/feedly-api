@@ -25,47 +25,52 @@ public final class FeedlyContract {
   /** A content:// style uri to the authority for the contacts provider */
   public static final Uri AUTHORITY_URI = Uri.parse("content://" + AUTHORITY);
 
-  /**
-   * Class that represents a Feed list
-   */
+  /**  Class that represents a Feed list */
   public static final class Feeds implements FeedsColumns {
 
     public static final String TBL_NAME = "feeds";
 
     public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
 
-    /**
-     * This utility class cannot be instantiated
-     */
+    /** This utility class cannot be instantiated */
     private Feeds() {}
   }
 
-  /**
-   * Class that represents a Feed list
-   */
+  /** Class that represents a Category list */
   public static final class Categories implements CategoriesColumns {
 
     public static final String TBL_NAME = "categories";
 
     public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
 
-    /**
-     * This utility class cannot be instantiated
-     */
+    /** This utility class cannot be instantiated */
     private Categories() {}
   }
 
-  public static final class FeedsCategories {
+  /** Class that represents a FeedsCategories list - used only internaly */
+  public static final class FeedsCategories implements FeedsCategoriesColumns {
 
     public static final String TBL_NAME = "feeds_categories";
 
+    /** This utility class cannot be instantiated */
+    private FeedsCategories() {}
+  }
+
+  /** Class that represents a FeedsByCategory list - sql View*/
+  public static final class FeedsByCategory implements FeedsColumns, FeedsCategoriesColumns {
+
+    public static final String TBL_NAME = "feeds_by_category";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private FeedsByCategory() {}
+  }
+
+
+  protected interface FeedsCategoriesColumns {
 
     public static final String FEED_ID = "feed_id", CATEGORY_ID = "category_id";
-
-    /**
-     * This utility class cannot be instantiated
-     */
-    private FeedsCategories() {}
   }
 
   protected interface FeedsColumns {

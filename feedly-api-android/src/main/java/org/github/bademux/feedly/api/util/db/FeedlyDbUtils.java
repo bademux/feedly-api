@@ -32,6 +32,26 @@ import java.util.List;
 
 public final class FeedlyDbUtils {
 
+  /**
+   * Merges two String arrays, nullsafe
+   * @param strings1 - first array
+   * @param strings2 - second array
+   * @return merged
+   */
+  public static String[] merge(String[] strings1, String... strings2) {
+    if (strings1 == null || strings2.length == 0) {
+      if(strings2 == null || strings2.length == 0){
+        return null;
+      }
+      return strings2;
+    }
+
+    String[] tmpProjection = new String[strings1.length + strings2.length];
+    System.arraycopy(strings2, 0, tmpProjection, 0, strings2.length);
+    System.arraycopy(strings1, 0, tmpProjection, strings2.length, strings1.length);
+    return tmpProjection;
+  }
+
   public static void execute(SQLiteDatabase db, Collection<SQLiteStatement> stms) {
     db.beginTransaction();
     try {

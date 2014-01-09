@@ -125,7 +125,7 @@ public class FeedListFragment extends ListFragment {
    */
   public interface OnFragmentInteractionListener {
 
-    // TODO: Update argument type and name
+    // TODO: Update argument type and TBL_NAME
     public void onFragmentInteraction(String id);
   }
 }

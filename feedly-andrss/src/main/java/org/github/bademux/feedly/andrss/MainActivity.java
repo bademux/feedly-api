@@ -24,8 +24,6 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteStatement;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
@@ -35,16 +33,11 @@ import android.widget.Toast;
 
 import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
 import org.github.bademux.feedly.api.model.Profile;
-import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
-import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
-import org.github.bademux.feedly.api.util.db.FeedlySQLiteHelper;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
 
 import static org.github.bademux.feedly.api.util.FeedlyWebAuthActivity.getResponceUrl;
 
@@ -64,9 +57,6 @@ public class MainActivity extends Activity
     }
 
     setContentView(R.layout.activity_main);
-    //init database
-    FeedlySQLiteHelper dbHelper = new FeedlySQLiteHelper(this, R.raw.feedly_cache_schema);
-    database = dbHelper.getWritableDatabase();
 
     initNavigationDrawer();
   }
@@ -77,7 +67,6 @@ public class MainActivity extends Activity
     // Set up the drawer.
     mNavigationDrawerFragment = (NavigationDrawerFragment)
         getFragmentManager().findFragmentById(R.id.navigation_drawer);
-    mNavigationDrawerFragment.setDatabase(database);
     DrawerLayout drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
     mNavigationDrawerFragment.setUp(R.id.navigation_drawer, drawerLayout);
   }
@@ -105,22 +94,22 @@ public class MainActivity extends Activity
     if (mFeedlyUtil.isAuthenticated()) {
       Toast.makeText(this, "Already logged in", Toast.LENGTH_SHORT).show();
       //TODO: move out
-      new ProcessDialogAsyncTask(this) {
-        @Override
-        protected void doInBackground() {
-          try {
-            List<Subscription> subscriptions =
-                mFeedlyUtil.service().subscriptions().list().execute();
-            Collection<SQLiteStatement> stms =
-                FeedlyDbUtils.prepareInserts(database, subscriptions);
-            FeedlyDbUtils.execute(database, stms);
-          } catch (Exception e) {
-            toast((e instanceof HttpResponseException) ?
-                  FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
-            Log.e(TAG, "Something goes wrong", e);
-          }
-        }
-      }.execute();
+//      new ProcessDialogAsyncTask(this) {
+//        @Override
+//        protected void doInBackground() {
+//          try {
+//            List<Subscription> subscriptions =
+//                mFeedlyUtil.service().subscriptions().list().execute();
+//            Collection<SQLiteStatement> stms =
+//                FeedlyDbUtils.prepareInserts(database, subscriptions);
+//            FeedlyDbUtils.execute(database, stms);
+//          } catch (Exception e) {
+//            toast((e instanceof HttpResponseException) ?
+//                  FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
+//            Log.e(TAG, "Something goes wrong", e);
+//          }
+//        }
+//      }.execute();
       return;
     }
 
@@ -144,10 +133,10 @@ public class MainActivity extends Activity
         try {
           mFeedlyUtil.logout();
           onNavigationDrawerItemSelected(0);
-          toast(R.string.msg_logged_out);
+          toast(R.string.msg_signed_out);
         } catch (Exception e) {
           toast((e instanceof HttpResponseException) ?
-                       FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
+                FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
           Log.e(TAG, "Something goes wrong", e);
         }
       }
@@ -165,10 +154,11 @@ public class MainActivity extends Activity
             FeedlyCredential credential = mFeedlyUtil.processResponse(getResponceUrl(data));
             //TODO: save current profile fore later use
             Profile profile = mFeedlyUtil.service().profile().get().execute();
-            toast(MainActivity.this.getText(R.string.msg_logged_as) + " " + profile.getFullName());
+            toast(String.format(MainActivity.this.getString(R.string.msg_signed_with),
+                                profile.getEmail(), profile.getFullName()));
           } catch (Exception e) {
             toast((e instanceof HttpResponseException) ?
-                         FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
+                  FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
             Log.e(TAG, "Something goes wrong", e);
           }
         }
@@ -241,8 +231,6 @@ public class MainActivity extends Activity
   private CharSequence mTitle;
 
   private FeedlyUtil mFeedlyUtil;
-
-  private SQLiteDatabase database;
 
   private static final String TAG = "MainActivity";
 }

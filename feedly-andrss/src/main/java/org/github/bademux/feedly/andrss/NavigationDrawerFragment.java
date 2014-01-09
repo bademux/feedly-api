@@ -21,12 +21,9 @@ package org.github.bademux.feedly.andrss;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
-import android.content.AsyncQueryHandler;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -44,12 +41,16 @@ import android.widget.ExpandableListView;
 import android.widget.SimpleCursorTreeAdapter;
 import android.widget.Toast;
 
+import org.github.bademux.feedly.api.provider.FeedlyContract;
+import org.github.bademux.feedly.api.util.db.QueryHandler;
+
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class NavigationDrawerFragment extends Fragment {
+public class NavigationDrawerFragment extends Fragment implements
+                                                       QueryHandler.AsyncQueryListener {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -68,16 +69,16 @@ public class NavigationDrawerFragment extends Fragment {
     // Select either the default item (0) or the last selected item.
     selectItem(mCurrentSelectedPosition);
 
-    mAdapter = getAdapter();
-    mQueryHandler = new QueryHandler(getActivity(), mAdapter);
+    mAdapter = createAdapter();
+
+    mQueryHandler = new QueryHandler(getActivity().getContentResolver(), this);
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
-
-    // Null out the group cursor. This will cause the group cursor and all of the child cursors
-    // to be closed.
+    // Null out the group cursor.
+    // This will cause the group cursor and all of the child cursors to be closed.
     mAdapter.changeCursor(null);
     mAdapter = null;
   }
@@ -102,45 +103,35 @@ public class NavigationDrawerFragment extends Fragment {
       }
     });
     mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
-//    mDrawerListView.setAdapter(mAdapter);
-//    mDrawerListView.setAdapter(new ArrayAdapter<String>(
-//        getActionBar().getThemedContext(),
-//        android.R.layout.simple_list_item_activated_1, android.R.id.text1,
-//        new String[]{getString(R.string.title_content), getString(R.string.title_auth),}));
+    mDrawerListView.setAdapter(mAdapter);
+    mQueryHandler.startQuery(TOKEN_GROUP, null,
+                             FeedlyContract.Categories.CONTENT_URI,
+                             new String[]{FeedlyContract.Categories.LABEL}, null, null, null);
     return mDrawerListView;
-  }
-
-  private CursorTreeAdapter getAdapter() {
-    // Note that the constructor does not take a Cursor. This is done to avoid querying the
-    // database on the main thread.
-    return new SimpleCursorTreeAdapter(getActivity(), null,
-                                       android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{"DISPLAY_NAME"}, // Name for group layouts
-                                       new int[]{android.R.id.text1},
-                                       android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{"NUMBER"}, // Number for child layouts
-                                       new int[]{android.R.id.text1}) {
-      @Override
-      protected Cursor getChildrenCursor(final Cursor groupCursor) {
-        // Given the group, we return a cursor for all the children within that group
-
-        // Return a cursor that points to this contact's phone numbers
-//        Uri.Builder builder = Contacts.CONTENT_URI.buildUpon();
-//        ContentUris.appendId(builder, groupCursor.getLong(GROUP_ID_COLUMN_INDEX));
-//        builder.appendEncodedPath(Contacts.Data.CONTENT_DIRECTORY);
-//        Uri phoneNumbersUri = builder.build();
-//
-//        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(), phoneNumbersUri,
-//                                 PHONE_NUMBER_PROJECTION, Phone.MIMETYPE + "=?",
-//                                 new String[] { Phone.CONTENT_ITEM_TYPE }, null);
-
-        return null;
-      }
-    };
   }
 
   public boolean isDrawerOpen() {
     return mDrawerLayout != null && mDrawerLayout.isDrawerOpen(mFragmentContainerView);
+  }
+
+  /** ...grandeur and poverty of Java... */
+  private CursorTreeAdapter createAdapter() {
+    // The constructor does not take a Cursor - avoiding querying the db on the main thread.
+    return new SimpleCursorTreeAdapter(getActivity(), null,
+                                       android.R.layout.simple_expandable_list_item_1,
+                                       new String[]{FeedlyContract.Categories.LABEL},
+                                       new int[]{android.R.id.text1},
+                                       android.R.layout.simple_expandable_list_item_1,
+                                       new String[]{FeedlyContract.Feeds.TITLE},
+                                       new int[]{android.R.id.text1}) {
+      @Override
+      protected Cursor getChildrenCursor(final Cursor groupCursor) {
+        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(),
+                                 FeedlyContract.Feeds.CONTENT_URI,
+                                 new String[]{FeedlyContract.Feeds.TITLE}, null, null, null);
+        return null;
+      }
+    };
   }
 
   /**
@@ -157,7 +148,7 @@ public class NavigationDrawerFragment extends Fragment {
     mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow, GravityCompat.START);
     // set up the drawer's list view with items and click listener
 
-    ActionBar actionBar = getActionBar();
+    ActionBar actionBar = getActivity().getActionBar();
     actionBar.setDisplayHomeAsUpEnabled(true);
     actionBar.setHomeButtonEnabled(true);
 
@@ -271,6 +262,18 @@ public class NavigationDrawerFragment extends Fragment {
   }
 
   @Override
+  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
+    switch (token) {
+      case TOKEN_GROUP:
+        mAdapter.setGroupCursor(cursor);
+        break;
+      case TOKEN_CHILD:
+        mAdapter.setChildrenCursor((Integer) cookie, cursor);
+        break;
+    }
+  }
+
+  @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     if (mDrawerToggle.onOptionsItemSelected(item)) {
       return true;
@@ -296,19 +299,15 @@ public class NavigationDrawerFragment extends Fragment {
    * 'context', rather than just what's in the current screen.
    */
   private void showGlobalContextActionBar() {
-    ActionBar actionBar = getActionBar();
+    ActionBar actionBar = getActivity().getActionBar();
     actionBar.setDisplayShowTitleEnabled(true);
     actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
     actionBar.setTitle(R.string.app_name);
   }
 
-  private ActionBar getActionBar() {
-    return getActivity().getActionBar();
-  }
-
   public NavigationDrawerFragment() {}
 
-  public void setDatabase(final SQLiteDatabase database) { this.database = database; }
+  public static final int TOKEN_GROUP = 0, TOKEN_CHILD = 1;
 
   /**
    * Remember the position of the selected item.
@@ -339,37 +338,9 @@ public class NavigationDrawerFragment extends Fragment {
   private boolean mFromSavedInstanceState;
   private boolean mUserLearnedDrawer;
 
-  private SQLiteDatabase database;
-
   private CursorTreeAdapter mAdapter;
   private QueryHandler mQueryHandler;
 
-
-  private static final class QueryHandler extends AsyncQueryHandler {
-
-    private static final int TOKEN_GROUP = 0;
-    private static final int TOKEN_CHILD = 1;
-
-    private CursorTreeAdapter mAdapter;
-
-    public QueryHandler(Context context, CursorTreeAdapter adapter) {
-      super(context.getContentResolver());
-      this.mAdapter = adapter;
-    }
-
-    @Override
-    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-      switch (token) {
-        case TOKEN_GROUP:
-          mAdapter.setGroupCursor(cursor);
-          return;
-        case TOKEN_CHILD:
-          int groupPosition = (Integer) cookie;
-          mAdapter.setChildrenCursor(groupPosition, cursor);
-          return;
-      }
-    }
-  }
 
   /**
    * Callbacks interface that all activities using this fragment must implement.

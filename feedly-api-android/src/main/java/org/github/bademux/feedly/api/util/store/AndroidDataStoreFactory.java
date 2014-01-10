@@ -40,7 +40,7 @@ import com.google.api.client.util.store.AbstractDataStoreFactory;
 import com.google.api.client.util.store.DataStore;
 import com.google.api.client.util.store.DataStoreUtils;
 
-import android.content.ContextWrapper;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
 
@@ -57,13 +57,9 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class AndroidDataStoreFactory extends AbstractDataStoreFactory {
 
-  public AndroidDataStoreFactory(ContextWrapper contextWrapper) {
-    this.contextWrapper =  contextWrapper;
-  }
-
   @Override
   protected <V extends Serializable> DataStore<V> createDataStore(String id) {
-    return new AndroidDataStore<V>(this, contextWrapper.getSharedPreferences(id, MODE_PRIVATE), id);
+    return new AndroidDataStore<V>(this, context.getSharedPreferences(id, MODE_PRIVATE), id);
   }
 
   static class AndroidDataStore<V extends Serializable> extends AbstractDataStore<V> {
@@ -170,5 +166,7 @@ public class AndroidDataStoreFactory extends AbstractDataStoreFactory {
     private final SharedPreferences preferences;
   }
 
-  private final ContextWrapper contextWrapper;
+  public AndroidDataStoreFactory(Context context) { this.context = context; }
+
+  private final Context context;
 }

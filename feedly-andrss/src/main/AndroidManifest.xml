@@ -4,33 +4,32 @@
           android:versionCode="1"
           android:versionName="1.0">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.BATTERY_STATS" />
-
     <uses-sdk android:minSdkVersion="14" android:targetSdkVersion="19"/>
 
-    <application
-            android:allowBackup="true"
-            android:icon="@drawable/ic_launcher"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.BATTERY_STATS"/>
 
-        <activity
-                android:name="org.github.bademux.feedly.andrss.MainActivity"
-                android:label="@string/app_name">
+    <application android:icon="@drawable/ic_launcher"
+                 android:label="@string/app_name"
+                 android:theme="@style/AppTheme"
+                 android:allowBackup="true">
+
+        <activity android:name="org.github.bademux.feedly.andrss.MainActivity"
+                  android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <activity android:name="org.github.bademux.feedly.api.util.FeedlyWebAuthActivity"/>
 
         <receiver android:name="org.github.bademux.feedly.service.StartupIntentReceiver">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
 
@@ -38,8 +37,6 @@
                   android:authorities="org.github.bademux.feedly.api"/>
 
         <service android:name="org.github.bademux.feedly.service.FeedlyCacheService"
-                 android:exported="false" android:enabled="true"/>
-        <!-- android:process=":remote" -->
-
+                 android:process=":remote" android:exported="true" android:enabled="true"/>
     </application>
 </manifest>

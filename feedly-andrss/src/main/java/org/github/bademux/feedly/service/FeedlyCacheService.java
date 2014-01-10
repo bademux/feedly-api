@@ -19,16 +19,9 @@
 
 package org.github.bademux.feedly.service;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.app.Service;
-import android.content.BroadcastReceiver;
+import android.app.IntentService;
 import android.content.ContentProviderOperation;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.os.IBinder;
 import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
@@ -39,70 +32,45 @@ import org.github.bademux.feedly.api.util.db.QueryHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.prepareInsertOperations;
 
-public class FeedlyCacheService extends Service {
+/**
+ * Feedly background service service - fetches new data database. Runned in separete process.
+ * Service started on boot by the {@link StartupIntentReceiver}
+ * Service woken by various events {@link CacheServiceManager}
+ */
+public class FeedlyCacheService extends IntentService {
 
-  private final static String ACTION_ALARM = "FeedlyAlarm";
-  private final static int DEFAULT_PERIOD = 30;
+  public final static String ACTION_REFRESH = "Refresh";
 
   @Override
   public void onCreate() {
+    super.onCreate();
     Log.i(TAG, "Service created");
 
     try {
       mFeedlyUtil = new FeedlyUtil(this, getString(R.string.client_id),
                                    getString(R.string.client_secret));
     } catch (IOException e) {
-      Log.e(TAG, "Service created");
+      Log.e(TAG, "Something goes wrong", e);
       return;
     }
 
     mQueryHandler = new QueryHandler(getContentResolver());
 
     // register actions
-    registerReceiver(myBroadcastReceiver, new IntentFilter() {{
-      addAction(Intent.ACTION_POWER_CONNECTED);
-      addAction(Intent.ACTION_POWER_DISCONNECTED);
-      addAction(Intent.ACTION_BATTERY_OKAY);
-      addAction(Intent.ACTION_BATTERY_LOW);
-      addAction(Intent.ACTION_BATTERY_CHANGED);
-      addAction(Intent.ACTION_DEVICE_STORAGE_OK);
-      addAction(Intent.ACTION_DEVICE_STORAGE_LOW);
-      addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
-      addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
-      addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-    }});
-
-    mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-    schedule(DEFAULT_PERIOD);
-  }
-
-  /**
-   * Starts service every ~period second, service will not wake up the system
-   *
-   * @param period in seconds
-   */
-  public void schedule(int period) {
-    Intent intent = new Intent(this, FeedlyCacheService.class);
-    intent.setAction(ACTION_ALARM);
-    PendingIntent mPendingIntent = PendingIntent.getService(this, 0, intent,
-                                                            PendingIntent.FLAG_UPDATE_CURRENT);
-    long now = Calendar.getInstance().getTimeInMillis();
-    mAlarmManager.setInexactRepeating(AlarmManager.RTC, now, period * 1000, mPendingIntent);
+    mManager = new CacheServiceManager(this, ACTION_REFRESH);
   }
 
   @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
-    Log.i(TAG, "onStartCommand " + intent.getAction() + " flags:" + flags + " startId:" + startId);
-    if(ALARM_SERVICE.equals(intent.getAction())){
+  protected void onHandleIntent(final Intent intent) {
+    Log.i(TAG, "onStartCommand " + intent.getAction());
+    if (ACTION_REFRESH.equals(intent.getAction())) {
 //      startPooling();
+      return;
     }
-    return START_STICKY; // If we get killed, after returning from here, restart
   }
 
   /**
@@ -115,40 +83,19 @@ public class FeedlyCacheService extends Service {
     getContentResolver().applyBatch(FeedlyContract.AUTHORITY, operations);
   }
 
-  public void onBroadcastReceive(Intent intent) {
-    Log.i(TAG, "Broadcast received: " + intent.getAction());
-
-//    switch (intent.getAction()) {
-//      case Intent.ACTION_POWER_CONNECTED: schedule(DEFAULT_PERIOD * 2); break;
-//      case Intent.ACTION_POWER_DISCONNECTED: schedule(DEFAULT_PERIOD); break;
-//      case Intent.ACTION_BATTERY_OKAY: schedule(DEFAULT_PERIOD); break;
-//      // case Intent.ACTION_BATTERY_LOW: mPendingIntent.cancel(); break;
-//      case ConnectivityManager.CONNECTIVITY_ACTION:
-//        if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)) {
-//          schedule(DEFAULT_PERIOD);
-//        } else {
-//          //mPendingIntent.cancel();
-//        }
-//        break;
-//    }
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+    mManager.unregister();
   }
 
-  private FeedlyUtil mFeedlyUtil;
+  public FeedlyCacheService() { super(TAG); }
 
-  private AlarmManager mAlarmManager;
+  private volatile FeedlyUtil mFeedlyUtil;
 
-  private QueryHandler mQueryHandler;
+  private volatile QueryHandler mQueryHandler;
 
-  private final BroadcastReceiver myBroadcastReceiver = new BroadcastReceiver() {
-    @Override
-    public void onReceive(final Context context, final Intent intent) {onBroadcastReceive(intent);}
-  };
-
-  @Override
-  public void onDestroy() { unregisterReceiver(myBroadcastReceiver); }
-
-  @Override
-  public IBinder onBind(Intent intent) { return null; }
+  private volatile CacheServiceManager mManager;
 
   private static final String TAG = "FeedlyCacheService";
 }

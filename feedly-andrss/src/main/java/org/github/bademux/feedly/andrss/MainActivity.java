@@ -36,6 +36,7 @@ import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
+import org.github.bademux.feedly.service.FeedlyCacheService;
 
 import java.io.IOException;
 
@@ -53,12 +54,15 @@ public class MainActivity extends Activity
       mFeedlyUtil = new FeedlyUtil(this, getString(R.string.client_id),
                                    getString(R.string.client_secret));
     } catch (IOException e) {
+      Log.e(TAG, "Something goes wrong", e);
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
     setContentView(R.layout.activity_main);
 
     initNavigationDrawer();
+
+    startService(new Intent(this, FeedlyCacheService.class));
   }
 
   private void initNavigationDrawer() {
@@ -93,23 +97,6 @@ public class MainActivity extends Activity
   public void onLogin() {
     if (mFeedlyUtil.isAuthenticated()) {
       Toast.makeText(this, "Already logged in", Toast.LENGTH_SHORT).show();
-      //TODO: move out
-//      new ProcessDialogAsyncTask(this) {
-//        @Override
-//        protected void doInBackground() {
-//          try {
-//            List<Subscription> subscriptions =
-//                mFeedlyUtil.service().subscriptions().list().execute();
-//            Collection<SQLiteStatement> stms =
-//                FeedlyDbUtils.prepareInserts(database, subscriptions);
-//            FeedlyDbUtils.execute(database, stms);
-//          } catch (Exception e) {
-//            toast((e instanceof HttpResponseException) ?
-//                  FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
-//            Log.e(TAG, "Something goes wrong", e);
-//          }
-//        }
-//      }.execute();
       return;
     }
 

@@ -42,9 +42,9 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCateg
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
-public class FeedlyProvider extends ContentProvider {
+public class FeedlyCacheProvider extends ContentProvider {
 
-  private static final String PROVIDER_URI = "org.github.bademux.feedly.provider.FeedlyProvider";
+  private static final String PROVIDER_URI = "org.github.bademux.feedly.provider.FeedlyCacheProvider";
 
   private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
@@ -143,7 +143,7 @@ public class FeedlyProvider extends ContentProvider {
 
   private DatabaseHelper mHelper;
 
-  private static final String TAG = "FeedlyProvider";
+  private static final String TAG = "FeedlyCacheProvider";
 
   private static class DatabaseHelper extends SQLiteOpenHelper {
 

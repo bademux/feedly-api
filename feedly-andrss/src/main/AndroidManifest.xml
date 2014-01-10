@@ -5,6 +5,10 @@
           android:versionName="1.0">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BATTERY_STATS" />
 
     <uses-sdk android:minSdkVersion="14" android:targetSdkVersion="19"/>
 
@@ -24,7 +28,18 @@
         </activity>
         <activity android:name="org.github.bademux.feedly.api.util.FeedlyWebAuthActivity"/>
 
-        <provider android:name="org.github.bademux.feedly.provider.FeedlyProvider"
+        <receiver android:name="org.github.bademux.feedly.service.StartupIntentReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <provider android:name="org.github.bademux.feedly.provider.FeedlyCacheProvider"
                   android:authorities="org.github.bademux.feedly.api"/>
+
+        <service android:name="org.github.bademux.feedly.service.FeedlyCacheService"
+                 android:exported="false" android:enabled="true"/>
+        <!-- android:process=":remote" -->
+
     </application>
 </manifest>

@@ -25,7 +25,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.repackaged.com.google.common.base.Preconditions;
 import com.google.api.client.util.store.DataStoreFactory;
 
-import android.app.Activity;
+import android.content.ContextWrapper;
 
 import org.github.bademux.feedly.api.dev.oauth2.DevFeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.dev.service.DevFeedly;
@@ -42,9 +42,9 @@ import static org.github.bademux.feedly.api.oauth2.FeedlyOAuthConstants.REDIRECT
 
 public final class FeedlyUtil {
 
-  public FeedlyUtil(Activity activity, String clientId, String clientSecrets)
+  public FeedlyUtil(ContextWrapper contextWrapper, String clientId, String clientSecrets)
       throws IOException {
-    dataStoreFactory = new AndroidDataStoreFactory(activity);
+    dataStoreFactory = new AndroidDataStoreFactory(contextWrapper);
     flow = new DevFeedlyAuthorizationCodeFlow.Builder(HTTP_TRANSPORT, JSON_FACTORY,
                                                       clientId, clientSecrets)
         .setDataStoreFactory(dataStoreFactory).build();

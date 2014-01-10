@@ -56,7 +56,14 @@ public final class QueryHandler extends AsyncQueryHandler {
   public QueryHandler(ContentResolver contentResolver) { super(contentResolver); }
 
   public interface AsyncQueryListener {
-
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param token the token to identify the query, passed in from
+     *            {@link #startQuery}.
+     * @param cookie the cookie object passed in from {@link #startQuery}.
+     * @param cursor The cursor holding the results from the query.
+     */
     void onQueryComplete(int token, Object cookie, Cursor cursor);
   }
 }

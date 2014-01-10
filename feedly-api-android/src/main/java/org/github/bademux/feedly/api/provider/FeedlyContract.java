@@ -52,6 +52,8 @@ public final class FeedlyContract {
 
     public static final String TBL_NAME = "feeds_categories";
 
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
     /** This utility class cannot be instantiated */
     private FeedsCategories() {}
   }

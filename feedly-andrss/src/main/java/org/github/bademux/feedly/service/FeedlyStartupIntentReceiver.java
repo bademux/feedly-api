@@ -19,17 +19,9 @@
 
 package org.github.bademux.feedly.service;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.util.Log;
+import org.github.bademux.feedly.api.service.StartupIntentReceiver;
 
-public class StartupIntentReceiver extends BroadcastReceiver {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      context.startService(new Intent(context, FeedlyCacheService.class));
-      Log.i(TAG, "Started on boot");
-    }
+public class FeedlyStartupIntentReceiver extends StartupIntentReceiver {
 
-  private static final String TAG = "StartupIntentReceiver";
+  public FeedlyStartupIntentReceiver() { super(FeedlyCacheService.class); }
 }

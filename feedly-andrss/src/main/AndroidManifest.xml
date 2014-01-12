@@ -28,16 +28,23 @@
 
         <activity android:name="org.github.bademux.feedly.api.util.FeedlyWebAuthActivity"/>
 
-        <receiver android:name="org.github.bademux.feedly.service.FeedlyStartupIntentReceiver">
-            <intent-filter>
+        <receiver android:name="org.github.bademux.feedly.service.FeedlyBroadcastReceiver">
+            <intent-filter android:priority="900">
+                <action android:name="org.github.bademux.feedly.api.service.ACTION_INIT"/>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.BATTERY_OKAY"/>
+                <action android:name="android.intent.action.BATTERY_LOW"/>
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED"/>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
             </intent-filter>
         </receiver>
+
 
         <provider android:name="org.github.bademux.feedly.provider.FeedlyCacheProvider"
                   android:authorities="org.github.bademux.feedly.api"/>
 
         <service android:name="org.github.bademux.feedly.service.FeedlyCacheService"
-                 android:process=":remote" android:exported="true" android:enabled="true"/>
+                 android:exported="true" android:enabled="true"/>
     </application>
 </manifest>

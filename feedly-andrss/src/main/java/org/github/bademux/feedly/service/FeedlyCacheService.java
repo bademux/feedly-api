@@ -26,30 +26,19 @@ import android.util.Log;
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.provider.FeedlyContract;
-import org.github.bademux.feedly.api.service.CacheServiceManager;
+import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
-import org.github.bademux.feedly.api.util.db.QueryHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.lang.Boolean.TRUE;
-import static org.github.bademux.feedly.api.service.CacheServiceManager.Configurator;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.prepareInsertOperations;
 
-/**
- * Feedly background service service - fetches new data database. Runned in separete process.
- * Service started on boot by the {@link org.github.bademux.feedly.api.service.StartupIntentReceiver}
- * Service woken by various events {@link org.github.bademux.feedly.api.service.CacheServiceManager}
- */
 public class FeedlyCacheService extends IntentService {
-
-  public final static int DEFAULT_PERIOD = 15;
 
   @Override
   public void onCreate() {
-    super.onCreate();
     Log.i(TAG, "Service created");
 
     try {
@@ -60,52 +49,31 @@ public class FeedlyCacheService extends IntentService {
       throw new IllegalStateException(e);
     }
 
-    mQueryHandler = new QueryHandler(getContentResolver());
-
-    // register actions
-    mManager = new CacheServiceManager(this, mConfigurator);
+    super.onCreate();
   }
 
   @Override
   protected void onHandleIntent(final Intent intent) {
     Log.i(TAG, "onStartCommand " + intent.getAction());
-    if (CacheServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
-      Log.i(TAG, "startPooling - " + intent.getAction());
-//      startPooling();
-      return;
+    if (ServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
+//      try {
+//        startPooling();
+//      } catch (Exception e) {
+//        Log.e(TAG, "error while pooling", e);
+//      }
     }
   }
 
   /** Pools data from feedly servers and stores it in database */
   protected void startPooling() throws Exception {
-    Log.i(TAG, "onStartCommand");
     List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
     ArrayList<ContentProviderOperation> operations = prepareInsertOperations(subscriptions);
     getContentResolver().applyBatch(FeedlyContract.AUTHORITY, operations);
   }
 
-  @Override
-  public void onDestroy() {
-    super.onDestroy();
-    mManager.unregister();
-  }
-
   public FeedlyCacheService() { super(TAG); }
-
-  private final Configurator mConfigurator = new CacheServiceManager.Configurator() {
-    @Override
-    public int interval() { return TRUE.equals(isCharging) ? DEFAULT_PERIOD * 2 : DEFAULT_PERIOD; }
-
-    //TODO: implement
-    @Override
-    public boolean shouldRefresh() { return TRUE.equals(isCharged) && TRUE.equals(isConnected); }
-  };
 
   private volatile FeedlyUtil mFeedlyUtil;
 
-  private volatile QueryHandler mQueryHandler;
-
-  private volatile CacheServiceManager mManager;
-
-  private static final String TAG = "FeedlyCacheService";
+  static final String TAG = "FeedlyCacheService";
 }

@@ -24,7 +24,9 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
 import android.view.Menu;
@@ -36,10 +38,11 @@ import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
-import org.github.bademux.feedly.service.FeedlyCacheService;
+import org.github.bademux.feedly.service.FeedlyBroadcastReceiver;
 
 import java.io.IOException;
 
+import static org.github.bademux.feedly.api.service.ServiceManager.ACTION_INIT;
 import static org.github.bademux.feedly.api.util.FeedlyWebAuthActivity.getResponceUrl;
 
 public class MainActivity extends Activity
@@ -62,7 +65,12 @@ public class MainActivity extends Activity
 
     initNavigationDrawer();
 
-    startService(new Intent(this, FeedlyCacheService.class));
+    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+    if (sp.getBoolean(KEY_PREFS_FIRST_LAUNCH, true)) {
+      sp.edit().putBoolean(KEY_PREFS_FIRST_LAUNCH, false).commit();
+      Log.d(TAG, "First run");
+      sendBroadcast(new Intent(ACTION_INIT, null, this, FeedlyBroadcastReceiver.class));
+    }
   }
 
   private void initNavigationDrawer() {
@@ -219,5 +227,7 @@ public class MainActivity extends Activity
 
   private FeedlyUtil mFeedlyUtil;
 
-  private static final String TAG = "MainActivity";
+  private static final String KEY_PREFS_FIRST_LAUNCH = "1stlaunch";
+
+  static final String TAG = "MainActivity";
 }

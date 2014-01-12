@@ -238,7 +238,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     /** {@inheritDoc} */
     public DatabaseHelper(Context context) { super(context, DB_NAME, null, VERSION); }
 
-    private static final String TAG = "DatabaseHelper";
+    static final String TAG = "DatabaseHelper";
   }
 
   private interface Code {

@@ -37,10 +37,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CursorTreeAdapter;
 import android.widget.ExpandableListView;
+import android.widget.LinearLayout;
 import android.widget.SimpleCursorTreeAdapter;
-import android.widget.Toast;
 
 import org.github.bademux.feedly.api.util.db.QueryHandler;
 
@@ -97,8 +98,16 @@ public class NavigationDrawerFragment extends Fragment implements
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
-    mDrawerListView = (ExpandableListView) inflater.inflate(
+    LinearLayout linearLayout = (LinearLayout) inflater.inflate(
         R.layout.fragment_navigation_drawer, container, false);
+
+    Button refreshButton = (Button) linearLayout.findViewById(R.id.button_refresh);
+    refreshButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(final View v) { mListener.onRefresh(); }
+    });
+
+    mDrawerListView = (ExpandableListView) linearLayout.findViewById(R.id.list_menu);
 
     mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
@@ -108,9 +117,11 @@ public class NavigationDrawerFragment extends Fragment implements
     });
     mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
     mDrawerListView.setAdapter(mAdapter);
+
     mQueryHandler.startQuery(TOKEN_GROUP, null, Categories.CONTENT_URI,
                              new String[]{Categories.LABEL, Categories.ID}, null, null, null);
-    return mDrawerListView;
+
+    return linearLayout;
   }
 
   public boolean isDrawerOpen() {
@@ -285,7 +296,7 @@ public class NavigationDrawerFragment extends Fragment implements
 
     switch (item.getItemId()) {
       case R.id.action_example:
-        Toast.makeText(getActivity(), "Example action.", Toast.LENGTH_SHORT).show();
+        mListener.onRefresh();
         return true;
       case R.id.action_auth:
         mListener.onLogin();
@@ -361,5 +372,7 @@ public class NavigationDrawerFragment extends Fragment implements
     void onLogin();
 
     void onLogout();
+
+    void onRefresh();
   }
 }

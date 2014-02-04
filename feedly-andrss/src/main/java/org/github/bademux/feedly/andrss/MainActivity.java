@@ -36,9 +36,11 @@ import android.widget.Toast;
 import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
 import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
+import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
 import org.github.bademux.feedly.service.FeedlyBroadcastReceiver;
+import org.github.bademux.feedly.service.FeedlyCacheService;
 
 import java.io.IOException;
 
@@ -136,6 +138,15 @@ public class MainActivity extends Activity
         }
       }
     }.execute();
+  }
+
+  @Override
+  public void onRefresh() {
+    if (!mFeedlyUtil.isAuthenticated()) {
+      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    startService(new Intent(ServiceManager.ACTION_REFRESH, null, this, FeedlyCacheService.class));
   }
 
   // Call Back method  to get the ResponseUrl form other Activity

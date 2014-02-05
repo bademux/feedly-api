@@ -20,8 +20,6 @@
 package org.github.bademux.feedly.api.model;
 
 import com.google.api.client.util.Key;
-import com.google.api.client.util.NullValue;
-import com.google.api.client.util.Value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,14 +27,8 @@ import java.util.List;
 
 public class FeedInfo extends Feed {
 
-  public enum State {
-    @Value("alive")alive, @Value("dormant")DORMANT, @Value("dead")DEAD, @NullValue UNKNOWN
-  }
-
   @Key
   private List<String> keywords;
-  @Key
-  private Double velocity;
   @Key
   private Boolean featured;
   @Key
@@ -45,15 +37,9 @@ public class FeedInfo extends Feed {
   private Boolean curated;
   @Key
   private Integer subscribers;
-  @Key
-  private State state;
 
   public List<String> getKeywords() {
     return keywords;
-  }
-
-  public Double getVelocity() {
-    return velocity;
   }
 
   public Boolean getFeatured() {
@@ -72,12 +58,10 @@ public class FeedInfo extends Feed {
     return subscribers;
   }
 
-  public State getState() {
-    return state;
-  }
-
   @Override
-  public FeedInfo set(String fieldName, Object value) { return (FeedInfo) super.set(fieldName, value); }
+  public FeedInfo set(String fieldName, Object value) {
+    return (FeedInfo) super.set(fieldName, value);
+  }
 
   @Override
   public FeedInfo clone() { return (FeedInfo) super.clone(); }

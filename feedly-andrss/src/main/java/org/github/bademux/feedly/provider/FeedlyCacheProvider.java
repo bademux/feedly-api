@@ -29,9 +29,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import org.github.bademux.feedly.api.provider.FeedlyContract;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
 import static java.lang.String.valueOf;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
@@ -42,8 +40,6 @@ import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyCacheProvider extends ContentProvider {
 
-  private static final String PROVIDER_URI = "org.github.bademux.feedly.provider.FeedlyCacheProvider";
-
   private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
   static {
@@ -53,6 +49,7 @@ public class FeedlyCacheProvider extends ContentProvider {
                        FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
     URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
     URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
+    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, FeedsCategories.TBL_NAME, Code.FEEDS_CATEGORIES);
   }
 
   /** {@inheritDoc} */
@@ -92,9 +89,12 @@ public class FeedlyCacheProvider extends ContentProvider {
     final SQLiteDatabase db = mHelper.getWritableDatabase();
     switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
-        return Uri.withAppendedPath(uri, valueOf(db.insert(Feeds.TBL_NAME, null, values)));
+        return Uri.withAppendedPath(uri, valueOf(db.replace(Feeds.TBL_NAME, null, values)));
       case Code.CATEGORIES:
-        return Uri.withAppendedPath(uri, valueOf(db.insert(Categories.TBL_NAME, null, values)));
+        return Uri.withAppendedPath(uri, valueOf(db.replace(Categories.TBL_NAME, null, values)));
+      case Code.FEEDS_CATEGORIES:
+        return Uri.withAppendedPath(uri,
+                                    valueOf(db.replace(FeedsCategories.TBL_NAME, null, values)));
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -110,6 +110,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.delete(Feeds.TBL_NAME, selection, selectionArgs);
       case Code.CATEGORIES:
         return db.delete(Categories.TBL_NAME, selection, selectionArgs);
+      case Code.FEEDS_CATEGORIES:
+        return db.delete(FeedsCategories.TBL_NAME, selection, selectionArgs);
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -145,12 +147,8 @@ public class FeedlyCacheProvider extends ContentProvider {
 
   private static class DatabaseHelper extends SQLiteOpenHelper {
 
-    private static final String DB_NAME = "feedly_cache.db";
-
-    private static final int VERSION = 1;
-
     /**
-     * Enables sql relarions
+     * Enables sql relationship
      * {@inheritDoc}
      */
     @Override
@@ -160,83 +158,22 @@ public class FeedlyCacheProvider extends ContentProvider {
     @Override
     public void onCreate(SQLiteDatabase db) {
       Log.i(TAG, "Creating database");
-
-      db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
-                 + Feeds.ID + " TEXT PRIMARY KEY,"
-                 + Feeds.TITLE + " TEXT NOT NULL,"
-                 + Feeds.SORTID + " TEXT,"
-                 + Feeds.UPDATED + " INTEGER DEFAULT 0,"
-                 + Feeds.WEBSITE + " TEXT)");
-      db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.TITLE
-                 + " ON " + Feeds.TBL_NAME + "(" + Feeds.TITLE + ")");
-      db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.SORTID
-                 + " ON " + Feeds.TBL_NAME + "(" + Feeds.SORTID + ")");
-      db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.WEBSITE
-                 + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
-
-      db.execSQL("CREATE TABLE IF NOT EXISTS " + Categories.TBL_NAME + "("
-                 + Categories.ID + " TEXT PRIMARY KEY,"
-                 + Categories.LABEL + " TEXT)");
-      db.execSQL("CREATE INDEX idx_" + Categories.TBL_NAME + "_" + Categories.LABEL
-                 + " ON " + Categories.TBL_NAME + "(" + Categories.LABEL + ")");
-
-      db.execSQL("CREATE TABLE IF NOT EXISTS " + FeedsCategories.TBL_NAME + "("
-                 + FeedsCategories.FEED_ID + " TEXT,"
-                 + FeedsCategories.CATEGORY_ID + " TEXT,"
-                 + "PRIMARY KEY(" + FeedsCategories.FEED_ID + "," + FeedsCategories.CATEGORY_ID
-                 + "),"
-                 + "FOREIGN KEY(" + FeedsCategories.FEED_ID + ") REFERENCES "
-                 + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
-                 + "FOREIGN KEY(" + FeedsCategories.CATEGORY_ID + ") REFERENCES "
-                 + Categories.TBL_NAME + "(" + Categories.ID
-                 + ") ON UPDATE CASCADE ON DELETE CASCADE,"
-                 + "UNIQUE(" + FeedsCategories.FEED_ID + ") ON CONFLICT REPLACE,"
-                 + "UNIQUE(" + FeedsCategories.CATEGORY_ID + ") ON CONFLICT REPLACE)");
-
-      db.execSQL("CREATE VIEW " + FeedsByCategory.TBL_NAME + " AS "
-                 + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
-                 + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
-                 + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
+      FeedlyDbUtils.create(db);
     }
 
     /** {@inheritDoc} */
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
       Log.i(TAG, "Upgrading database; wiping app data");
-      clear(db);
+      FeedlyDbUtils.dropAll(db);
       onCreate(db);
-      db.execSQL("VACUUM");
     }
 
-    protected void clear(SQLiteDatabase db) {
-      Cursor c = db.rawQuery("SELECT TBL_NAME FROM sqlite_master WHERE type='table'", null);
-      if (!c.moveToFirst()) {
-        return;
-      }
-
-      List<String> tables = new ArrayList<>();
-      while (!c.isAfterLast()) {
-        String tableName = c.getString(0);
-        if (!tableName.equals("android_metadata")) {
-          tables.add(tableName);
-        }
-        c.moveToNext();
-      }
-      //cleanup
-      db.beginTransaction();
-      try {
-        for (String tableName : tables) {
-          db.delete(tableName, null, null);
-//        db.execSQL("DROP TABLE IF EXISTS '" + tableName + '\'');
-        }
-        db.setTransactionSuccessful();
-      } finally {
-        db.endTransaction();
-      }
-    }
-
-    /** {@inheritDoc} */
     public DatabaseHelper(Context context) { super(context, DB_NAME, null, VERSION); }
+
+    private static final String DB_NAME = "feedly_cache.db";
+
+    private static final int VERSION = 5;
 
     static final String TAG = "DatabaseHelper";
   }
@@ -246,5 +183,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int AUTHORITY = 0;
     static final int FEEDS = 100, FEED = 101, FEEDS_BY_CATEGORY = 102;
     static final int CATEGORIES = 200, CATEGORY = 201;
+    static final int FEEDS_CATEGORIES = 300;
   }
 }

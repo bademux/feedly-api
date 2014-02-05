@@ -25,6 +25,7 @@ import com.google.api.client.util.GenericData;
 
 import android.content.ContentProviderOperation;
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.net.Uri;
@@ -32,10 +33,13 @@ import android.net.Uri;
 import org.github.bademux.feedly.api.model.Category;
 import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.model.Subscription;
+import org.github.bademux.feedly.api.provider.FeedlyContract;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static android.content.ContentProviderOperation.Builder;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
@@ -44,80 +48,55 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategor
 
 public final class FeedlyDbUtils {
 
-  /**
-   * Merges two String arrays, nullsafe
-   *
-   * @param strings1 - first array
-   * @param strings2 - second array
-   * @return merged
-   */
-  public static String[] merge(String[] strings1, String... strings2) {
-    if (strings1 == null || strings2.length == 0) {
-      if (strings2 == null || strings2.length == 0) {
-        return null;
-      }
-      return strings2;
-    }
-
-    String[] tmpProjection = new String[strings1.length + strings2.length];
-    System.arraycopy(strings2, 0, tmpProjection, 0, strings2.length);
-    System.arraycopy(strings1, 0, tmpProjection, strings2.length, strings1.length);
-    return tmpProjection;
-  }
-
-  public static ArrayList<ContentProviderOperation> prepareInsertOperations(
+  public static Collection<ContentProviderOperation> prepareInsertOperations(
       Collection<Subscription> subscriptions) {
-    //approx: subscriptions + categories + mappings
-    int sz = subscriptions.size() * 3;
-    ArrayList<ContentProviderOperation> contentValues = new ArrayList<ContentProviderOperation>(sz);
+    //approx. size: subscriptions + categories + mappings
+    Map<String, ContentProviderOperation> uniqueOps = new HashMap<>(subscriptions.size() * 3);
     for (Subscription subscription : subscriptions) {
-      contentValues.add(buildInsert(Feeds.CONTENT_URI, subscription).build());
+      uniqueOps.put(subscription.getId(), buildInsert(Feeds.CONTENT_URI, subscription).build());
       List<Category> categories = subscription.getCategories();
       if (categories != null && !categories.isEmpty()) {
         for (Category category : categories) {
-          contentValues.add(buildInsert(Categories.CONTENT_URI, category).build());
-          //it is possible to commit after this operation
-          contentValues.add(buildInsert(FeedsCategories.CONTENT_URI, subscription, category)
-                                .withYieldAllowed(true).build());
+          uniqueOps.put(category.getId(), buildInsert(Categories.CONTENT_URI, category).build());
+          uniqueOps.put(subscription.getId() + category.getId(),
+                        buildInsert(FeedsCategories.CONTENT_URI,
+                                    "feed_id", subscription, "category_id", category)
+                            //hints commiting after this operation
+                            .withYieldAllowed(true).build());
         }
       }
     }
-    return contentValues;
+    return uniqueOps.values();
   }
 
   public static <T extends GenericJson> Builder buildInsert(final Uri uri, final T genericData) {
     Builder builder = ContentProviderOperation.newInsert(uri);
     for (String fieldName : genericData.getClassInfo().getNames()) {
-      builder.withValue(fieldName, genericData.get(fieldName));
+      Object value = genericData.get(fieldName);
+      if (isAllowed(value)) {
+        builder.withValue(fieldName, value);
+      }
     }
     return builder;
   }
 
-  public static <T extends GenericJson> Builder buildInsert(final Uri uri, final T idJsonEntity1,
-                                                            final T idJsonEntity2) {
+  public static <T extends Map<String, ?>> Builder buildInsert(final Uri uri,
+                                                               final String column_name1,
+                                                               final T entity1,
+                                                               final String column_name2,
+                                                               final T entity2) {
     return ContentProviderOperation.newInsert(uri)
-        .withValue("id", idJsonEntity1.get("id")).withValue("id", idJsonEntity2.get("id"));
+        .withValue(column_name1, entity1.get("id")).withValue(column_name2, entity2.get("id"));
   }
 
-  public static Collection<ContentValues> prepareContentValues(
-      final Collection<Subscription> subscriptions) {
-    //approx: subscriptions + categories + mappings
-    List<ContentValues> contentValues = new ArrayList<ContentValues>(subscriptions.size() * 3);
-    for (Subscription subscription : subscriptions) {
-      contentValues.add(convertFrom(subscription));
-      List<Category> categories = subscription.getCategories();
-      if (categories != null && !categories.isEmpty()) {
-        for (Category category : categories) {
-          contentValues.add(convertFrom(category));
-          ContentValues feedsCategories = new ContentValues(2);
-          feedsCategories.put(subscription.getId(), category.getId());
-        }
-      }
-    }
-    return contentValues;
+  public static boolean isAllowed(Object value) {
+    return value == null || value instanceof String || value instanceof Byte
+           || value instanceof Short || value instanceof Integer || value instanceof Long
+           || value instanceof Float || value instanceof Double || value instanceof Boolean
+           || value instanceof byte[];
   }
 
-  public static ContentValues convertFrom(final GenericData genericData) {
+  public static ContentValues convert(final GenericData genericData) {
     Collection<String> fieldNames = genericData.getClassInfo().getNames();
     ContentValues contentValues = new ContentValues(fieldNames.size());
     for (String fieldName : fieldNames) {
@@ -214,6 +193,95 @@ public final class FeedlyDbUtils {
     stm.bindString(1, feed.getId());
     stm.bindString(2, category.getId());
     return stm;
+  }
+
+  public static void create(SQLiteDatabase db) {
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
+               + Feeds.ID + " TEXT PRIMARY KEY,"
+               + Feeds.TITLE + " TEXT NOT NULL,"
+               + Feeds.SORTID + " TEXT,"
+               + Feeds.UPDATED + " INTEGER DEFAULT 0,"
+               + Feeds.WEBSITE + " TEXT,"
+               + Feeds.VELOCITY + " DOUBLE,"
+               + Feeds.STATE + " TEXT)");
+    db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.TITLE
+               + " ON " + Feeds.TBL_NAME + "(" + Feeds.TITLE + ")");
+    db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.SORTID
+               + " ON " + Feeds.TBL_NAME + "(" + Feeds.SORTID + ")");
+    db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.WEBSITE
+               + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
+
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + Categories.TBL_NAME + "("
+               + Categories.ID + " TEXT PRIMARY KEY,"
+               + Categories.LABEL + " TEXT)");
+    db.execSQL("CREATE INDEX idx_" + Categories.TBL_NAME + "_" + Categories.LABEL
+               + " ON " + Categories.TBL_NAME + "(" + Categories.LABEL + ")");
+
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + FeedsCategories.TBL_NAME + "("
+               + FeedsCategories.FEED_ID + " TEXT,"
+               + FeedsCategories.CATEGORY_ID + " TEXT,"
+               + "PRIMARY KEY(" + FeedsCategories.FEED_ID + "," + FeedsCategories.CATEGORY_ID
+               + "),"
+               + "FOREIGN KEY(" + FeedsCategories.FEED_ID + ") REFERENCES "
+               + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+               + "FOREIGN KEY(" + FeedsCategories.CATEGORY_ID + ") REFERENCES "
+               + Categories.TBL_NAME + "(" + Categories.ID
+               + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+               + "UNIQUE(" + FeedsCategories.FEED_ID + ") ON CONFLICT REPLACE,"
+               + "UNIQUE(" + FeedsCategories.CATEGORY_ID + ") ON CONFLICT REPLACE)");
+
+    db.execSQL("CREATE VIEW " + FeedlyContract.FeedsByCategory.TBL_NAME + " AS "
+               + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
+               + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
+               + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
+  }
+
+  public static void dropAll(SQLiteDatabase db) {
+    drop(db, "index", "name NOT LIKE 'sqlite_autoindex_%'");
+
+    //TODO: delete dependant last
+    //FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
+    db.execSQL("DROP TABLE 'feeds_categories'");
+    db.execSQL("DROP TABLE 'categories'");
+    db.execSQL("DROP TABLE 'feeds'");
+
+    drop(db, "view", null);
+  }
+
+  public static void drop(SQLiteDatabase db, String type, String whereClause) {
+    String sql = "SELECT name FROM sqlite_master WHERE type='" + type + '\'';
+    if (whereClause != null) {
+      sql += " AND " + whereClause;
+    }
+
+    Cursor c = db.rawQuery(sql, null);
+    if (c.moveToFirst()) {
+      while (!c.isAfterLast()) {
+        db.execSQL("DROP " + type + " '" + c.getString(0) + '\'');
+        c.moveToNext();
+      }
+    }
+  }
+
+  /**
+   * Merges two String arrays, nullsafe
+   *
+   * @param strings1 - first array
+   * @param strings2 - second array
+   * @return merged
+   */
+  public static String[] merge(String[] strings1, String... strings2) {
+    if (strings1 == null || strings2.length == 0) {
+      if (strings2 == null || strings2.length == 0) {
+        return null;
+      }
+      return strings2;
+    }
+
+    String[] tmpProjection = new String[strings1.length + strings2.length];
+    System.arraycopy(strings2, 0, tmpProjection, 0, strings2.length);
+    System.arraycopy(strings1, 0, tmpProjection, strings2.length, strings1.length);
+    return tmpProjection;
   }
 
   private final static String INSERT_FEEDS =

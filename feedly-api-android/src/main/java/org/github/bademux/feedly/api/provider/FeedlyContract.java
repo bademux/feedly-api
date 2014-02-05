@@ -86,6 +86,8 @@ public final class FeedlyContract {
     public static final String SORTID = "sortid";
     public static final String UPDATED = "updated";
     public static final String WEBSITE = "website";
+    public static final String VELOCITY = "velocity";
+    public static final String STATE = "state";
   }
 
   protected interface CategoriesColumns {

@@ -21,11 +21,18 @@ package org.github.bademux.feedly.api.model;
 
 import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
+import com.google.api.client.util.NullValue;
+import com.google.api.client.util.Value;
 
 
 public abstract class Feed extends GenericJson implements Markable, Stream {
 
   public static final String PREFIX = "feed";
+
+  public enum State {
+    @Value("alive")alive, @Value("dormant")DORMANT, @Value("dead")DEAD,
+    @Value("dead.flooded")DEAD_FLOODED, @NullValue UNKNOWN
+  }
 
   @Key
   protected String id;
@@ -33,6 +40,10 @@ public abstract class Feed extends GenericJson implements Markable, Stream {
   protected String title;
   @Key
   private String website;
+  @Key
+  private Double velocity;
+  @Key
+  private State state;
 
   public String getId() {
     return id;
@@ -44,6 +55,15 @@ public abstract class Feed extends GenericJson implements Markable, Stream {
 
   public String getWebsite() {
     return website;
+  }
+
+  /**
+   * @return The average number of articles published weekly. It's updated every few days.
+   */
+  public Double getVelocity() { return velocity; }
+
+  public State getState() {
+    return state;
   }
 
   public String getUrl() { return id.substring(PREFIX.length() + 1); }

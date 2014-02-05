@@ -111,7 +111,7 @@ public abstract class ServiceManager {
 
   protected Status createStatus() {
     Status status = new Status();
-    Utils.initAll(mContext, mStatus);
+    Utils.initAll(mContext, status);
     return status;
   }
 

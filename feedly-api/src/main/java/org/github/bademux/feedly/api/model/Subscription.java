@@ -32,8 +32,6 @@ public class Subscription extends Feed {
   @Key
   private Long updated;
   @Key
-  private Double velocity;
-  @Key
   private List<Category> categories;
   @Key
   private List<String> topics;
@@ -48,12 +46,6 @@ public class Subscription extends Feed {
   public String getSortid() { return sortid; }
 
   public Long getUpdated() { return updated; }
-
-
-  /**
-   * @return The average number of articles published weekly. It's updated every few days.
-   */
-  public Double getVelocity() { return velocity; }
 
   public List<Category> getCategories() { return categories; }
 

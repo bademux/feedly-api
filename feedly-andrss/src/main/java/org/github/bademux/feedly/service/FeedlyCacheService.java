@@ -31,6 +31,7 @@ import org.github.bademux.feedly.api.util.FeedlyUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.prepareInsertOperations;
@@ -56,19 +57,19 @@ public class FeedlyCacheService extends IntentService {
   protected void onHandleIntent(final Intent intent) {
     Log.i(TAG, "onStartCommand " + intent.getAction());
     if (ServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
-//      try {
-//        startPooling();
-//      } catch (Exception e) {
-//        Log.e(TAG, "error while pooling", e);
-//      }
+      try {
+        startPooling();
+      } catch (Exception e) {
+        Log.e(TAG, "error while pooling", e);
+      }
     }
   }
 
   /** Pools data from feedly servers and stores it in database */
   protected void startPooling() throws Exception {
     List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
-    ArrayList<ContentProviderOperation> operations = prepareInsertOperations(subscriptions);
-    getContentResolver().applyBatch(FeedlyContract.AUTHORITY, operations);
+    Collection<ContentProviderOperation> operations = prepareInsertOperations(subscriptions);
+    getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
   }
 
   public FeedlyCacheService() { super(TAG); }

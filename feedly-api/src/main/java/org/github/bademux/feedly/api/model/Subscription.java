@@ -33,8 +33,8 @@ public class Subscription extends Feed {
   private Long updated;
   @Key
   private List<Category> categories;
-  @Key
-  private List<String> topics;
+//  @Key
+//  private List<String> topics;
 
   public Subscription(String url, String title) {
     this.id = new StringBuffer(PREFIX).append('/').append(url).toString();
@@ -62,7 +62,7 @@ public class Subscription extends Feed {
    * @return a ids of tags for this feed. feedly uses it to group feeds together and build a map of
    * topics the user is interested in.
    */
-  public List<String> getTopics() { return topics; }
+//  public List<String> getTopics() { return topics; }
 
   @Override
   public Subscription set(String fieldName, Object value) {

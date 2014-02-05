@@ -51,22 +51,29 @@ public final class FeedlyDbUtils {
   public static Collection<ContentProviderOperation> prepareInsertOperations(
       Collection<Subscription> subscriptions) {
     //approx. size: subscriptions + categories + mappings
-    Map<String, ContentProviderOperation> uniqueOps = new HashMap<>(subscriptions.size() * 3);
+    final int feedsCount = subscriptions.size();
+
+    ArrayList<ContentProviderOperation> operations = new ArrayList<>(feedsCount);
+    Map<String, ContentProviderOperation> categoryOps = new HashMap<>(feedsCount);
+    Map<String, ContentProviderOperation> mappingOps = new HashMap<>(feedsCount);
     for (Subscription subscription : subscriptions) {
-      uniqueOps.put(subscription.getId(), buildInsert(Feeds.CONTENT_URI, subscription).build());
+      operations.add(buildInsert(Feeds.CONTENT_URI, subscription).build());
       List<Category> categories = subscription.getCategories();
       if (categories != null && !categories.isEmpty()) {
         for (Category category : categories) {
-          uniqueOps.put(category.getId(), buildInsert(Categories.CONTENT_URI, category).build());
-          uniqueOps.put(subscription.getId() + category.getId(),
-                        buildInsert(FeedsCategories.CONTENT_URI,
-                                    "feed_id", subscription, "category_id", category)
-                            //hints commiting after this operation
-                            .withYieldAllowed(true).build());
+          categoryOps.put(category.getId(), buildInsert(Categories.CONTENT_URI, category).build());
+          mappingOps.put(subscription.getId() + category.getId(),
+                         buildInsert(FeedsCategories.CONTENT_URI,
+                                     "feed_id", subscription.getId(),
+                                     "category_id", category.getId())
+                             //hints commiting after this operation
+                             .withYieldAllowed(true).build());
         }
       }
     }
-    return uniqueOps.values();
+    operations.addAll(categoryOps.values());
+    operations.addAll(mappingOps.values());
+    return operations;
   }
 
   public static <T extends GenericJson> Builder buildInsert(final Uri uri, final T genericData) {
@@ -80,13 +87,11 @@ public final class FeedlyDbUtils {
     return builder;
   }
 
-  public static <T extends Map<String, ?>> Builder buildInsert(final Uri uri,
-                                                               final String column_name1,
-                                                               final T entity1,
-                                                               final String column_name2,
-                                                               final T entity2) {
+  public static Builder buildInsert(final Uri uri,
+                                    final String columnName1, final String entityId1,
+                                    final String columnName2, final String entityId2) {
     return ContentProviderOperation.newInsert(uri)
-        .withValue(column_name1, entity1.get("id")).withValue(column_name2, entity2.get("id"));
+        .withValue(columnName1, entityId1).withValue(columnName2, entityId2);
   }
 
   public static boolean isAllowed(Object value) {
@@ -197,7 +202,7 @@ public final class FeedlyDbUtils {
 
   public static void create(SQLiteDatabase db) {
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
-               + Feeds.ID + " TEXT PRIMARY KEY,"
+               + Feeds.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
                + Feeds.TITLE + " TEXT NOT NULL,"
                + Feeds.SORTID + " TEXT,"
                + Feeds.UPDATED + " INTEGER DEFAULT 0,"
@@ -212,7 +217,7 @@ public final class FeedlyDbUtils {
                + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Categories.TBL_NAME + "("
-               + Categories.ID + " TEXT PRIMARY KEY,"
+               + Categories.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
                + Categories.LABEL + " TEXT)");
     db.execSQL("CREATE INDEX idx_" + Categories.TBL_NAME + "_" + Categories.LABEL
                + " ON " + Categories.TBL_NAME + "(" + Categories.LABEL + ")");
@@ -221,14 +226,12 @@ public final class FeedlyDbUtils {
                + FeedsCategories.FEED_ID + " TEXT,"
                + FeedsCategories.CATEGORY_ID + " TEXT,"
                + "PRIMARY KEY(" + FeedsCategories.FEED_ID + "," + FeedsCategories.CATEGORY_ID
-               + "),"
+               + ") ON CONFLICT IGNORE,"
                + "FOREIGN KEY(" + FeedsCategories.FEED_ID + ") REFERENCES "
                + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
                + "FOREIGN KEY(" + FeedsCategories.CATEGORY_ID + ") REFERENCES "
                + Categories.TBL_NAME + "(" + Categories.ID
-               + ") ON UPDATE CASCADE ON DELETE CASCADE,"
-               + "UNIQUE(" + FeedsCategories.FEED_ID + ") ON CONFLICT REPLACE,"
-               + "UNIQUE(" + FeedsCategories.CATEGORY_ID + ") ON CONFLICT REPLACE)");
+               + ") ON UPDATE CASCADE ON DELETE CASCADE)");
 
     db.execSQL("CREATE VIEW " + FeedlyContract.FeedsByCategory.TBL_NAME + " AS "
                + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME

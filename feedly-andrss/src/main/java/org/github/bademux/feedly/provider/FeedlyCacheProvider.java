@@ -31,7 +31,6 @@ import android.util.Log;
 import org.github.bademux.feedly.api.provider.FeedlyContract;
 import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
-import static java.lang.String.valueOf;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
@@ -59,6 +58,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     Log.i(TAG, "Querying database");
 
     final SQLiteDatabase db = mHelper.getReadableDatabase();
+    assert db != null;
     switch (URI_MATCHER.match(uri)) {
       case Code.FEED:
         return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
@@ -86,18 +86,30 @@ public class FeedlyCacheProvider extends ContentProvider {
   @Override
   public Uri insert(final Uri uri, final ContentValues values) {
     Log.i(TAG, "Inserting into database");
-    final SQLiteDatabase db = mHelper.getWritableDatabase();
-    switch (URI_MATCHER.match(uri)) {
-      case Code.FEEDS:
-        return Uri.withAppendedPath(uri, valueOf(db.replace(Feeds.TBL_NAME, null, values)));
-      case Code.CATEGORIES:
-        return Uri.withAppendedPath(uri, valueOf(db.replace(Categories.TBL_NAME, null, values)));
-      case Code.FEEDS_CATEGORIES:
-        return Uri.withAppendedPath(uri,
-                                    valueOf(db.replace(FeedsCategories.TBL_NAME, null, values)));
-      default:
-        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+    int code = URI_MATCHER.match(uri);
+    if (code == -1) {
+      throw new UnsupportedOperationException("Unmatched Uri: " + uri);
     }
+    long rowId = insert(mHelper.getWritableDatabase(), code, values);
+    return Uri.withAppendedPath(uri, String.valueOf(rowId));
+  }
+
+  protected long insert(final SQLiteDatabase db, final int uriCode, final ContentValues values) {
+    switch (uriCode) {
+      case Code.FEEDS:
+        return db.replace(Feeds.TBL_NAME, null, values);
+      case Code.CATEGORIES:
+        return db.replace(Categories.TBL_NAME, null, values);
+      case Code.FEEDS_CATEGORIES:
+        return db.insertWithOnConflict(FeedsCategories.TBL_NAME, null, values,
+                                       SQLiteDatabase.CONFLICT_IGNORE);
+      default:
+        throw new UnsupportedOperationException("Unsupported Uri code: " + uriCode);
+    }
+  }
+
+  public Uri inrtReturn(final Uri uri, final long ret) {
+    return Uri.withAppendedPath(uri, String.valueOf(ret));
   }
 
   /** {@inheritDoc} */
@@ -105,6 +117,7 @@ public class FeedlyCacheProvider extends ContentProvider {
   public int delete(final Uri uri, final String selection, final String[] selectionArgs) {
     Log.i(TAG, "Deleting from database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
+    assert db != null;
     switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
         return db.delete(Feeds.TBL_NAME, selection, selectionArgs);
@@ -123,6 +136,7 @@ public class FeedlyCacheProvider extends ContentProvider {
                     final String selection, final String[] selectionArgs) {
     Log.i(TAG, "Updating data in database");
     final SQLiteDatabase db = mHelper.getWritableDatabase();
+    assert db != null;
     switch (URI_MATCHER.match(uri)) {
       case Code.FEEDS:
         return db.update(Feeds.TBL_NAME, values, selection, selectionArgs);
@@ -173,7 +187,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 5;
+    private static final int VERSION = 9;
 
     static final String TAG = "DatabaseHelper";
   }

@@ -37,13 +37,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.CursorTreeAdapter;
 import android.widget.ExpandableListView;
-import android.widget.LinearLayout;
 import android.widget.SimpleCursorTreeAdapter;
 
 import org.github.bademux.feedly.api.util.db.QueryHandler;
+
+import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
+import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
+import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
@@ -82,7 +84,6 @@ public class NavigationDrawerFragment extends Fragment implements
   @Override
   public void onDestroy() {
     super.onDestroy();
-    // Null out the group cursor.
     // This will cause the group cursor and all of the child cursors to be closed.
     mAdapter.changeCursor(null);
     mAdapter = null;
@@ -98,16 +99,10 @@ public class NavigationDrawerFragment extends Fragment implements
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
-    LinearLayout linearLayout = (LinearLayout) inflater.inflate(
+    mPullToRefreshLayout = (PullToRefreshLayout) inflater.inflate(
         R.layout.fragment_navigation_drawer, container, false);
 
-    Button refreshButton = (Button) linearLayout.findViewById(R.id.button_refresh);
-    refreshButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(final View v) { mListener.onRefresh(); }
-    });
-
-    mDrawerListView = (ExpandableListView) linearLayout.findViewById(R.id.list_menu);
+    mDrawerListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.list_menu);
 
     mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
@@ -121,7 +116,15 @@ public class NavigationDrawerFragment extends Fragment implements
     mQueryHandler.startQuery(TOKEN_GROUP, null, Categories.CONTENT_URI,
                              new String[]{Categories.LABEL, Categories.ID}, null, null, null);
 
-    return linearLayout;
+    ActionBarPullToRefresh.from(getActivity())
+        .theseChildrenArePullable(mDrawerListView, mDrawerListView.getEmptyView())
+        .listener(new OnRefreshListener() {
+          @Override
+          public void onRefreshStarted(final View view) { mListener.onRefreshMenu(); }
+        })
+        .setup(mPullToRefreshLayout);
+
+    return mPullToRefreshLayout;
   }
 
   public boolean isDrawerOpen() {
@@ -296,7 +299,7 @@ public class NavigationDrawerFragment extends Fragment implements
 
     switch (item.getItemId()) {
       case R.id.action_example:
-        mListener.onRefresh();
+        mListener.onRefreshMenu();
         return true;
       case R.id.action_auth:
         mListener.onLogin();
@@ -348,10 +351,10 @@ public class NavigationDrawerFragment extends Fragment implements
   private DrawerLayout mDrawerLayout;
   private ExpandableListView mDrawerListView;
   private View mFragmentContainerView;
+  private PullToRefreshLayout mPullToRefreshLayout;
 
   private int mCurrentSelectedPosition = 0;
-  private boolean mFromSavedInstanceState;
-  private boolean mUserLearnedDrawer;
+  private boolean mFromSavedInstanceState, mUserLearnedDrawer;
 
   private CursorTreeAdapter mAdapter;
   private QueryHandler mQueryHandler;
@@ -373,6 +376,6 @@ public class NavigationDrawerFragment extends Fragment implements
 
     void onLogout();
 
-    void onRefresh();
+    void onRefreshMenu();
   }
 }

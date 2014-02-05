@@ -141,12 +141,22 @@ public class MainActivity extends Activity
   }
 
   @Override
-  public void onRefresh() {
+  public void onRefreshMenu() {
     if (!mFeedlyUtil.isAuthenticated()) {
       Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
       return;
     }
     startService(new Intent(ServiceManager.ACTION_REFRESH, null, this, FeedlyCacheService.class));
+  }
+
+
+  @Override
+  public void onRefreshEntries() {
+    if (!mFeedlyUtil.isAuthenticated()) {
+      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    Toast.makeText(this, "onRefreshEntries", Toast.LENGTH_SHORT).show();
   }
 
   // Call Back method  to get the ResponseUrl form other Activity

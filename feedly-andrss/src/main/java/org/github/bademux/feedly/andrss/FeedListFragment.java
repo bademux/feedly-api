@@ -22,8 +22,13 @@ import android.app.Activity;
 import android.app.ListFragment;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
+import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
+import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,16 +44,6 @@ import java.util.Map;
  */
 public class FeedListFragment extends ListFragment {
 
-  // TODO: Rename parameter arguments, choose names that match
-  // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-  private static final String ARG_PARAM1 = "param1";
-  private static final String ARG_PARAM2 = "param2";
-
-  // TODO: Rename and change types of parameters
-  private String mParam1;
-  private String mParam2;
-
-  private OnFragmentInteractionListener mListener;
 
   // TODO: Rename and change types of parameters
   public static FeedListFragment newInstance(String param1, String param2) {
@@ -58,13 +53,6 @@ public class FeedListFragment extends ListFragment {
     args.putString(ARG_PARAM2, param2);
     fragment.setArguments(args);
     return fragment;
-  }
-
-  /**
-   * Mandatory empty constructor for the fragment manager to instantiate the
-   * fragment (e.g. upon screen orientation changes).
-   */
-  public FeedListFragment() {
   }
 
   @Override
@@ -83,16 +71,29 @@ public class FeedListFragment extends ListFragment {
                                                             DummyContent.ITEMS));
   }
 
+  @Override
+  public void onViewCreated(View view, Bundle savedInstanceState) {
+    super.onViewCreated(view, savedInstanceState);
+
+    // This is the View which is created by ListFragment
+    ViewGroup viewGroup = (ViewGroup) view;
+
+    // We need to create a PullToRefreshLayout manually
+    mPullToRefreshLayout = new PullToRefreshLayout(viewGroup.getContext());
+
+    ActionBarPullToRefresh.from(getActivity()).insertLayoutInto(viewGroup)
+        .theseChildrenArePullable(getListView(), getListView().getEmptyView())
+        .listener(new OnRefreshListener() {
+          @Override
+          public void onRefreshStarted(final View view) { mListener.onRefreshEntries(); }
+        })
+        .setup(mPullToRefreshLayout);
+  }
 
   @Override
   public void onAttach(Activity activity) {
     super.onAttach(activity);
-    try {
-      mListener = (OnFragmentInteractionListener) activity;
-    } catch (ClassCastException e) {
-      throw new ClassCastException(activity.toString()
-                                   + " must implement OnFragmentInteractionListener");
-    }
+    mListener = (OnFragmentInteractionListener) activity;
   }
 
   @Override
@@ -113,6 +114,21 @@ public class FeedListFragment extends ListFragment {
     }
   }
 
+  public FeedListFragment() {}
+
+  // TODO: Rename parameter arguments, choose names that match
+  // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+  private static final String ARG_PARAM1 = "param1";
+  private static final String ARG_PARAM2 = "param2";
+
+  // TODO: Rename and change types of parameters
+  private String mParam1;
+  private String mParam2;
+
+  private OnFragmentInteractionListener mListener;
+
+  private PullToRefreshLayout mPullToRefreshLayout;
+
   /**
    * This interface must be implemented by activities that contain this
    * fragment to allow an interaction in this fragment to be communicated
@@ -127,6 +143,8 @@ public class FeedListFragment extends ListFragment {
 
     // TODO: Update argument type and TBL_NAME
     public void onFragmentInteraction(String id);
+
+    public void onRefreshEntries();
   }
 }
 
@@ -165,6 +183,7 @@ class DummyContent {
    * A dummy item representing a piece of content.
    */
   public static class DummyItem {
+
     public String id;
     public String content;
 

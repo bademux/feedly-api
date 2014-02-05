@@ -108,10 +108,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     }
   }
 
-  public Uri inrtReturn(final Uri uri, final long ret) {
-    return Uri.withAppendedPath(uri, String.valueOf(ret));
-  }
-
   /** {@inheritDoc} */
   @Override
   public int delete(final Uri uri, final String selection, final String[] selectionArgs) {

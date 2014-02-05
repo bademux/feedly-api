@@ -4,7 +4,10 @@ dependencies {
     compile project(':feedly-api-android') exclude module: 'httpclient'
 
     //android dependencies
+    compile 'com.github.chrisbanes.actionbarpulltorefresh:library:0.9+'
     compile 'com.android.support:support-v4:+'
+//    compile 'com.android.support:appcompat-v7:+'
+//    compile 'com.github.chrisbanes.actionbarpulltorefresh:extra-abs:0.9+'
 }
 
 

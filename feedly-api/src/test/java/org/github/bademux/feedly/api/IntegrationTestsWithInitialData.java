@@ -76,7 +76,7 @@ public class IntegrationTestsWithInitialData extends AbstractIntegrationTest {
     ));
 
     //remove subscription
-    service.subscriptions().detete(subscription).execute();
+    service.subscriptions().delete(subscription).execute();
     subscriptions = service.subscriptions().list().execute();
     assertEquals("Wrong  number of subscriptions", 0, subscriptions.size());
   }
@@ -105,7 +105,7 @@ public class IntegrationTestsWithInitialData extends AbstractIntegrationTest {
     assertEquals("Wrong category label", testCategory.getLabel(), category.getLabel());
 
     // remove category
-    service.categories().detete(category).execute();
+    service.categories().delete(category).execute();
     categories = service.categories().list().execute();
     assertThat(categories, hasItem(
         not((Matcher) hasProperty("label", equalTo(testCategory.getName())))

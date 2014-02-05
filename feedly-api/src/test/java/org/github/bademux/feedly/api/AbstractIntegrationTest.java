@@ -62,16 +62,16 @@ public abstract class AbstractIntegrationTest {
   public void cleanUp() throws IOException {
     //cleanUp
     for (Subscription subscription : service.subscriptions().list().execute()) {
-      service.subscriptions().detete(subscription).execute();
+      service.subscriptions().delete(subscription).execute();
     }
 
     for (Category category : service.categories().list().execute()) {
-      service.categories().detete(category).execute();
+      service.categories().delete(category).execute();
     }
 
     List<Tag> tags = service.tags().list().execute();
     if (!tags.isEmpty()) {
-      service.tags().deteteByTag(tags).execute();
+      service.tags().delete(tags).execute();
     }
   }
 

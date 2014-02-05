@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import static com.google.api.client.repackaged.com.google.common.base.Preconditions.checkNotNull;
 
 
-public class Topic extends IdJsonEntity implements Stream {
+public class Topic extends IdGenericJson implements Stream {
 
   public static final String PREFIX = "topic";
 
@@ -44,6 +44,7 @@ public class Topic extends IdJsonEntity implements Stream {
   private Long created;
 
   /**
+   * @hide
    * Use {org.github.bademux.feedly.api.service.Feedly#newTopic(java.lang.String, org.github.bademux.feedly.api.model.Topic.Interest)}
    * @param name
    * @param interest

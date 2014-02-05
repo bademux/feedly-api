@@ -24,7 +24,7 @@ import com.google.api.client.util.Key;
 import java.util.ArrayList;
 
 
-public class Tag extends IdJsonEntity implements Stream {
+public class Tag extends IdGenericJson implements Stream {
 
   public static final String PREFIX = "tag";
 
@@ -36,6 +36,7 @@ public class Tag extends IdJsonEntity implements Stream {
   private String label;
 
   /**
+   * @hide
    * Use org.github.bademux.feedly.api.service.Feedly#newTag(java.lang.String)
    * @param name
    * @param userId

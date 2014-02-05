@@ -29,16 +29,23 @@ import org.github.bademux.feedly.api.dev.oauth2.DevFeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.dev.service.DevFeedly;
 import org.github.bademux.feedly.api.extensions.java6.auth.oauth2.FeedlyAuthorizationCodeInstalledApp;
 import org.github.bademux.feedly.api.extensions.jetty.auth.oauth2.FeedlyLocalServerReceiver;
+import org.github.bademux.feedly.api.model.Category;
 import org.github.bademux.feedly.api.model.Profile;
+import org.github.bademux.feedly.api.model.Stream;
+import org.github.bademux.feedly.api.model.Subscription;
+import org.github.bademux.feedly.api.model.Tag;
 import org.github.bademux.feedly.api.oauth2.FeedlyAuthorizationCodeFlow;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
 import org.github.bademux.feedly.api.service.Feedly;
+import org.github.bademux.feedly.api.service.Request;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URLDecoder;
 import java.security.CodeSource;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
@@ -79,7 +86,7 @@ public class FeedlyConMan {
     while (!IS_SHUTDOWN) {
       System.out.print("Enter command: ");
       try {
-        exec(sc.nextLine());
+        exec(sc.nextLine().split(" "));
       } catch (IOException e) {
         System.err.println(e.getMessage());
       } catch (Throwable t) {
@@ -89,8 +96,89 @@ public class FeedlyConMan {
     }
   }
 
-  public static void exec(String command) throws Exception {
-    switch (command) {
+  public static void exec(String... commands) throws Exception {
+    switch (commands[0]) {
+      case "ids":
+      case "streams":
+        if (commands.length < 3) { break; }
+        Stream stream;
+        switch (commands[1]) {
+          case Subscription.PREFIX:
+            stream = new Subscription(commands[2]);
+            break;
+          case Category.PREFIX:
+            stream = checkNotNull(service, "Please authorize").newCategory(commands[2]);
+            break;
+          case Tag.PREFIX:
+            stream = checkNotNull(service, "Please authorize").newTag(commands[2]);
+            break;
+          default:
+            throw new UnsupportedOperationException("Unknown cmd '"
+                                                    + commands[1] + "' for " + commands[2]);
+        }
+        Feedly.Streams streams = checkNotNull(service, "Please authorize").streams();
+
+        Request<?> request =
+            "ids".equals(commands[0]) ? streams.ids(stream) : streams.contents(stream);
+        System.out.println(request.execute());
+        break;
+      case "list":
+        if (commands.length < 2) { break; }
+        Collection<?> objects;
+        switch (commands[1]) {
+          case Subscription.PREFIX:
+            objects = checkNotNull(service, "Please authorize").subscriptions().list().execute();
+            break;
+          case Category.PREFIX:
+            objects = checkNotNull(service, "Please authorize").categories().list().execute();
+            break;
+          case Tag.PREFIX:
+            objects = checkNotNull(service, "Please authorize").tags().list().execute();
+            break;
+          default:
+            throw new UnsupportedOperationException("Unknown cmd '"
+                                                    + commands[1] + "' for " + commands[0]);
+        }
+        System.out.println(Arrays.deepToString(objects.toArray()).replace("}, {", "},\n{"));
+        break;
+      case "add":
+        if (commands.length < 3) { break; }
+        switch (commands[1]) {
+          case Subscription.PREFIX:
+            Subscription subscription = new Subscription(commands[2]);
+            for (int i = 3; i < commands.length; i++) {
+              subscription.addCategory(service.newCategory(commands[i]));
+            }
+            checkNotNull(service, "Please authorize").subscriptions()
+                .update(subscription).execute();
+            break;
+          case Category.PREFIX:
+            checkNotNull(service, "Please authorize").categories()
+                .update(service.newCategory(commands[2])).execute();
+            break;
+          case Tag.PREFIX:
+            checkNotNull(service, "Please authorize").tags()
+                .update(service.newTag(commands[2])).execute();
+            break;
+        }
+        break;
+      case "remove":
+        if (commands.length < 3) { break; }
+        switch (commands[1]) {
+          case Subscription.PREFIX:
+            checkNotNull(service, "Please authorize").subscriptions()
+                .delete(new Subscription(commands[2])).execute();
+            break;
+          case Category.PREFIX:
+            checkNotNull(service, "Please authorize").categories()
+                .delete(service.newCategory(commands[2])).execute();
+            break;
+          case Tag.PREFIX:
+            checkNotNull(service, "Please authorize").tags()
+                .delete(service.newTag(commands[2])).execute();
+            break;
+        }
+        break;
       case "profile":
         Profile profile = checkNotNull(service, "Please authorize").profile().get().execute();
         for (Map.Entry<String, Object> entry : profile.entrySet()) {
@@ -133,13 +221,21 @@ public class FeedlyConMan {
         checkNotNull(service, "Please authorize").opml().importSubscription(opml).execute();
         break;
       default:
-        System.out.println("Unknown command");
+        System.out.println("Error: Unknown command: " + commands[0]);
       case "help":
         System.out.println(
             "Available commands:\n"
             + "login   - authenticate the user. User will be redirected to a login web page\n"
             + "logout  - clear credential\n"
             + "profile - shows user information\n"
+            + "streams\\ids {" + Subscription.PREFIX + ',' + Category.PREFIX + ',' + Tag.PREFIX
+            + "} streamid \n - get stream contents or ids \n"
+            + "list {" + Subscription.PREFIX + ',' + Category.PREFIX + ',' + Tag.PREFIX
+            + "} \n - lists items \n"
+            + "add {" + Subscription.PREFIX + ',' + Category.PREFIX + ',' + Tag.PREFIX
+            + "} id [category1, category2, ...] \n - adds new item \n"
+            + "remove {" + Subscription.PREFIX + ',' + Category.PREFIX + ',' + Tag.PREFIX
+            + "} id \n - removes item \n"
             + "export  - Downloads feed list to the './" + OPML_FILE_NAME + "' file\n"
             + "import  - uploads opml './" + OPML_FILE_NAME + "' file to the Feedly service\n"
             + "exit    - Exits from the program. User credential still can be stored in '"

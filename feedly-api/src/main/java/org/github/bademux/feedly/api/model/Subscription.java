@@ -36,8 +36,10 @@ public class Subscription extends Feed {
 //  @Key
 //  private List<String> topics;
 
+  public Subscription(String url) { super(url); }
+
   public Subscription(String url, String title) {
-    this.id = new StringBuffer(PREFIX).append('/').append(url).toString();
+    this(url);
     this.title = title;
   }
 
@@ -63,7 +65,6 @@ public class Subscription extends Feed {
    * topics the user is interested in.
    */
 //  public List<String> getTopics() { return topics; }
-
   @Override
   public Subscription set(String fieldName, Object value) {
     return (Subscription) super.set(fieldName, value);

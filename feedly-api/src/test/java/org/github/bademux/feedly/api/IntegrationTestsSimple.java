@@ -91,7 +91,7 @@ public class IntegrationTestsSimple extends AbstractIntegrationTest {
     //cleanUp
     List<Topic> topics = service.topics().list().execute();
     for (Topic topic : topics) {
-      service.topics().detete(topic).execute();
+      service.topics().delete(topic).execute();
     }
 
     //add category
@@ -115,7 +115,7 @@ public class IntegrationTestsSimple extends AbstractIntegrationTest {
     assertEquals("Wrong topic InterestLevel", testTopic.getInterest(), topic.getInterest());
 
     //remove category
-    service.topics().detete(testTopic).execute();
+    service.topics().delete(testTopic).execute();
     topics = service.topics().list().execute();
     assertTrue("Topics shouldn't exist", topics.isEmpty());
   }

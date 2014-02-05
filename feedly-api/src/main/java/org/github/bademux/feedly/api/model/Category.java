@@ -17,24 +17,6 @@
  *                 Bademus
  */
 
-/*
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *    Contributors:
- *                 Bademus
- */
-
 package org.github.bademux.feedly.api.model;
 
 import com.google.api.client.util.Key;
@@ -42,18 +24,28 @@ import com.google.api.client.util.Key;
 import java.util.ArrayList;
 
 
-public class Category extends IdJsonEntity implements Markable, Stream {
+public class Category extends IdGenericJson implements Markable, Stream {
 
   public static final String PREFIX = "category";
 
-  public static final String UNCATEGORIZED = "global.uncategorized";
+  /** Users can promote sources they really love to read to must have. */
+  public static final String MUST = "global.must";
+  /** All the articles from all the sources the user subscribes to. */
   public static final String ALL = "global.all";
-  public static final String MUST_READS = "global.must";
+  /** All the articles from all the sources the user subscribes to and are not in a category. */
+  public static final String UNCATEGORIZED = "global.uncategorized";
+  /** List of entries the user has recently read - limited to the feeds the users subscribes to */
+  public static final String READ = "global.read";
+  /** Users can save articles for later. Equivalent of starring articles in Google Reader. */
+  public static final String SAVED = "global.saved";
 
   @Key
   private String label;
 
-  /** Use org.github.bademux.feedly.api.service.Feedly#newCategory(java.lang.String) */
+  /**
+   * @hide
+   * Use org.github.bademux.feedly.api.service.Feedly#newCategory(java.lang.String)
+   */
   public Category(String name, String userId) {
     super(PREFIX, name, userId);
     this.label = name;

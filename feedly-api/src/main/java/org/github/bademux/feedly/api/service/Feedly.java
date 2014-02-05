@@ -47,6 +47,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 import static com.google.api.client.repackaged.com.google.common.base.Preconditions.checkNotNull;
@@ -242,9 +243,7 @@ public class Feedly extends AbstractClient {
       }
     }
 
-    public Delete detete(String categoryId) { return new Delete(categoryId); }
-
-    public Delete detete(Category category) { return detete(category.getId()); }
+    public Delete delete(Category category) { return new Delete(category.getId()); }
 
     public class Delete extends Request<Void> {
 
@@ -313,6 +312,10 @@ public class Feedly extends AbstractClient {
       }
     }
 
+    public Update update(String url, String title) {
+      return new Update(new Subscription(url, title));
+    }
+
     public Update update(Subscription subscription) {
       return new Update(subscription);
     }
@@ -342,7 +345,7 @@ public class Feedly extends AbstractClient {
       }
     }
 
-    public Delete detete(Subscription subscription) { return new Delete(subscription); }
+    public Delete delete(Subscription subscription) { return new Delete(subscription.getId()); }
 
     public class Delete extends Request<Void> {
 
@@ -351,9 +354,9 @@ public class Feedly extends AbstractClient {
       @Key
       private final String subscriptionId;
 
-      public Delete(Subscription subscription) {
+      public Delete(String subscriptionId) {
         super(Feedly.this, "DELETE", REST_PATH, null, Void.class);
-        this.subscriptionId = subscription.getId();
+        this.subscriptionId = subscriptionId;
       }
 
       public String getSubscription() {
@@ -438,7 +441,7 @@ public class Feedly extends AbstractClient {
       }
     }
 
-    public Delete detete(Topic topic) { return new Delete(topic); }
+    public Delete delete(Topic topic) { return new Delete(topic); }
 
     public class Delete extends Request<Void> {
 
@@ -541,14 +544,14 @@ public class Feedly extends AbstractClient {
       }
     }
 
-    public Delete detete(Collection<String> tagIds) {
-      return new Delete(tagIds);
+    public Delete delete(org.github.bademux.feedly.api.model.Tag... tags) {
+      return delete(Arrays.asList(tags));
     }
 
-    public Delete deteteByTag(Collection<org.github.bademux.feedly.api.model.Tag> tags) {
+    public Delete delete(Collection<org.github.bademux.feedly.api.model.Tag> tags) {
       Collection<String> tagIds = new ArrayList<String>(tags.size());
       for (org.github.bademux.feedly.api.model.Tag tag : tags) { tagIds.add(tag.getId()); }
-      return detete(tagIds);
+      return new Delete(tagIds);
     }
 
     public class Delete extends Request<Void> {
@@ -678,19 +681,14 @@ public class Feedly extends AbstractClient {
 
   public class Entry {
 
-    public List listEntries(Collection<org.github.bademux.feedly.api.model.Entry> entries)
-        throws IOException {
-      Collection<String> entryIds = new ArrayList<String>();
-      for (org.github.bademux.feedly.api.model.Entry entry : checkNotNull(entries)) {
-        entryIds.add(entry.getId());
-      }
-      return list(entryIds);
+    public List list(org.github.bademux.feedly.api.model.Entry... entries) throws IOException {
+      String[] entryIds = new String[entries.length];
+      for (int i = 0; i < entryIds.length; i++) { entryIds[i] = entries[i].getId(); }
+      return list(Arrays.asList(entryIds));
     }
 
     /** The number of entry ids you can pass as an input is limited to 1,000. */
-    public List list(Collection<String> entryIds) throws IOException {
-      return new List(entryIds);
-    }
+    public List list(Collection<String> entryIds) throws IOException { return new List(entryIds); }
 
     public class List extends Request<org.github.bademux.feedly.api.model.Entry.Entries> {
 

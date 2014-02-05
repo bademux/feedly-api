@@ -26,7 +26,7 @@ import static com.google.api.client.util.Preconditions.checkNotNull;
 import static com.google.api.client.util.Strings.isNullOrEmpty;
 
 
-public abstract class IdJsonEntity extends GenericJson {
+public abstract class IdGenericJson extends GenericJson {
 
   private final String prefix;
 
@@ -37,7 +37,7 @@ public abstract class IdJsonEntity extends GenericJson {
    * Support current user format 'user/-/...'
    * see https://groups.google.com/forum/?fromgroups=#!topic/feedly-cloud/R0GC4IMgejI
    */
-  public IdJsonEntity(String prefix, String name, String userId) {
+  protected IdGenericJson(String prefix, String name, String userId) {
     this(prefix, name);
     StringBuilder sb = new StringBuilder("user/");
     if (isNullOrEmpty(userId)) {
@@ -48,16 +48,26 @@ public abstract class IdJsonEntity extends GenericJson {
     id = sb.append('/').append(id).toString();
   }
 
-  protected IdJsonEntity(String prefix, String name) {
+  protected IdGenericJson(String prefix, String name) {
     this(prefix);
     id = new StringBuilder(prefix).append('/').append(checkNotNull(name)).toString();
   }
 
-  protected IdJsonEntity(String prefix) { this.prefix = checkNotNull(prefix); }
+  protected IdGenericJson(String prefix) { this.prefix = checkNotNull(prefix); }
 
   public String getId() { return id; }
 
   public String getName() { return id.substring(id.indexOf(prefix + '/') + prefix.length() + 1); }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) { return true; }
+    if (o == null || getClass() != o.getClass()) { return false; }
+    return id.equals(((IdGenericJson) o).id);
+  }
+
+  @Override
+  public int hashCode() { return id.hashCode(); }
 }
 
 

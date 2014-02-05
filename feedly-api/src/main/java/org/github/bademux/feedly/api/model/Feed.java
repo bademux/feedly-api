@@ -19,23 +19,21 @@
 
 package org.github.bademux.feedly.api.model;
 
-import com.google.api.client.json.GenericJson;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 
 
-public abstract class Feed extends GenericJson implements Markable, Stream {
+public abstract class Feed extends IdGenericJson implements Markable, Stream {
 
   public static final String PREFIX = "feed";
+
 
   public enum State {
     @Value("alive")alive, @Value("dormant")DORMANT, @Value("dead")DEAD,
     @Value("dead.flooded")DEAD_FLOODED, @NullValue UNKNOWN
   }
 
-  @Key
-  protected String id;
   @Key
   protected String title;
   @Key
@@ -45,9 +43,8 @@ public abstract class Feed extends GenericJson implements Markable, Stream {
   @Key
   private State state;
 
-  public String getId() {
-    return id;
-  }
+
+  protected Feed(final String url) { super(PREFIX, url); }
 
   public String getTitle() {
     return title;
@@ -66,8 +63,10 @@ public abstract class Feed extends GenericJson implements Markable, Stream {
     return state;
   }
 
-  public String getUrl() { return id.substring(PREFIX.length() + 1); }
+  public String getUrl() { return getId().substring(PREFIX.length() + 1); }
 
+  protected Feed() { super(PREFIX); }
+  
   @Override
   public Feed set(String fieldName, Object value) { return (Feed) super.set(fieldName, value); }
 

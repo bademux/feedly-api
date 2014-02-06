@@ -20,19 +20,19 @@
 
 package org.github.bademux.feedly.api.util.db;
 
-import com.google.api.client.json.GenericJson;
-import com.google.api.client.util.GenericData;
+import com.google.api.client.repackaged.com.google.common.base.Joiner;
 
 import android.content.ContentProviderOperation;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteStatement;
-import android.net.Uri;
 
 import org.github.bademux.feedly.api.model.Category;
+import org.github.bademux.feedly.api.model.Entry;
 import org.github.bademux.feedly.api.model.Feed;
+import org.github.bademux.feedly.api.model.IdGenericJson;
 import org.github.bademux.feedly.api.model.Subscription;
+import org.github.bademux.feedly.api.model.Tag;
 import org.github.bademux.feedly.api.provider.FeedlyContract;
 
 import java.util.ArrayList;
@@ -42,170 +42,184 @@ import java.util.List;
 import java.util.Map;
 
 import static android.content.ContentProviderOperation.Builder;
+import static android.content.ContentProviderOperation.newInsert;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 
 public final class FeedlyDbUtils {
 
-  public static Collection<ContentProviderOperation> prepareInsertOperations(
-      Collection<Subscription> subscriptions) {
+  public static Collection<ContentProviderOperation> insertOpsForSubscriptions(
+      final Collection<Subscription> subscriptions) {
     //approx. size: subscriptions + categories + mappings
-    final int feedsCount = subscriptions.size();
-
-    ArrayList<ContentProviderOperation> operations = new ArrayList<>(feedsCount);
-    Map<String, ContentProviderOperation> categoryOps = new HashMap<>(feedsCount);
-    Map<String, ContentProviderOperation> mappingOps = new HashMap<>(feedsCount);
+    List<ContentProviderOperation> operations = new ArrayList<>(subscriptions.size() * 2);
+    Map<String, ContentProviderOperation> miscOps = new HashMap<>();
     for (Subscription subscription : subscriptions) {
-      operations.add(buildInsert(Feeds.CONTENT_URI, subscription).build());
-      List<Category> categories = subscription.getCategories();
-      if (categories != null && !categories.isEmpty()) {
-        for (Category category : categories) {
-          categoryOps.put(category.getId(), buildInsert(Categories.CONTENT_URI, category).build());
-          mappingOps.put(subscription.getId() + category.getId(),
-                         buildInsert(FeedsCategories.CONTENT_URI,
-                                     "feed_id", subscription.getId(),
-                                     "category_id", category.getId())
-                             //hints commiting after this operation
-                             .withYieldAllowed(true).build());
-        }
-      }
+      operations.add(newInsert(Feeds.CONTENT_URI).withValues(convert(subscription)).build());
+      processCategories(operations, miscOps, subscription, subscription.getCategories());
     }
-    operations.addAll(categoryOps.values());
-    operations.addAll(mappingOps.values());
     return operations;
   }
 
-  public static <T extends GenericJson> Builder buildInsert(final Uri uri, final T genericData) {
-    Builder builder = ContentProviderOperation.newInsert(uri);
-    for (String fieldName : genericData.getClassInfo().getNames()) {
-      Object value = genericData.get(fieldName);
-      if (isAllowed(value)) {
-        builder.withValue(fieldName, value);
-      }
+  public static Collection<ContentProviderOperation> insertOpsForEntries(
+      final Collection<Entry> entries) {
+    //approx. size: subscriptions + categories + mappings
+    List<ContentProviderOperation> operations = new ArrayList<>(entries.size() * 2);
+    Map<String, ContentProviderOperation> miscOps = new HashMap<>();
+    for (Entry entry : entries) {
+      operations.add(newInsert(Entries.CONTENT_URI).withValues(convert(entry)).build());
+      Entry.Origin stream = entry.getOrigin();
+      Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
+      operations.add(getUnique(newInsert(Feeds.CONTENT_URI).withValues(convert(feed)).build(),
+                               feed.getId(), miscOps));
+      processCategories(operations, miscOps, feed, entry.getCategories());
+      processTags(operations, miscOps, entry, entry.getTags());
     }
-    return builder;
+    return operations;
   }
 
-  public static Builder buildInsert(final Uri uri,
-                                    final String columnName1, final String entityId1,
-                                    final String columnName2, final String entityId2) {
-    return ContentProviderOperation.newInsert(uri)
-        .withValue(columnName1, entityId1).withValue(columnName2, entityId2);
+  private static ContentProviderOperation getUnique(
+      final ContentProviderOperation op, final String id,
+      final Map<String, ContentProviderOperation> miscOps) {
+    ContentProviderOperation uniqueOp = miscOps.put(id, op);
+    return uniqueOp == null ? op : uniqueOp;
   }
 
-  public static boolean isAllowed(Object value) {
-    return value == null || value instanceof String || value instanceof Byte
-           || value instanceof Short || value instanceof Integer || value instanceof Long
-           || value instanceof Float || value instanceof Double || value instanceof Boolean
-           || value instanceof byte[];
-  }
-
-  public static ContentValues convert(final GenericData genericData) {
-    Collection<String> fieldNames = genericData.getClassInfo().getNames();
-    ContentValues contentValues = new ContentValues(fieldNames.size());
-    for (String fieldName : fieldNames) {
-      Object value = genericData.get(fieldName);
-      if (value == null) {
-        contentValues.putNull(fieldName);
-      } else if (value instanceof String) {
-        contentValues.put(fieldName, (String) value);
-      } else if (value instanceof Byte) {
-        contentValues.put(fieldName, (Byte) value);
-      } else if (value instanceof Short) {
-        contentValues.put(fieldName, (Short) value);
-      } else if (value instanceof Integer) {
-        contentValues.put(fieldName, (Integer) value);
-      } else if (value instanceof Long) {
-        contentValues.put(fieldName, (Long) value);
-      } else if (value instanceof Float) {
-        contentValues.put(fieldName, (Float) value);
-      } else if (value instanceof Double) {
-        contentValues.put(fieldName, (Double) value);
-      } else if (value instanceof Boolean) {
-        contentValues.put(fieldName, (Boolean) value);
-      } else if (value instanceof byte[]) {
-        contentValues.put(fieldName, (byte[]) value);
-      } else {
-        throw new IllegalArgumentException("Unknown type: " + value.getClass().getName()
-                                           + " for GenericData: " + genericData);
-      }
+  protected static void processCategories(final List<ContentProviderOperation> operations,
+                                          final Map<String, ContentProviderOperation> miscOps,
+                                          final Feed feed, final List<Category> categories) {
+    if (categories == null) {
+      return;
     }
-    return contentValues;
-  }
-
-  public static void execute(SQLiteDatabase db, Collection<SQLiteStatement> stms) {
-    db.beginTransaction();
-    try {
-      for (SQLiteStatement stm : stms) {
-        stm.execute();
+    for (int i = 0; i < categories.size(); i++) {
+      Category category = categories.get(i);
+      Builder builderCategories = newInsert(Categories.CONTENT_URI).withValues(convert(category));
+      operations.add(getUnique(builderCategories.build(), category.getId(), miscOps));
+      Builder builder = newInsert(FeedsCategories.CONTENT_URI).withValues(convert(feed, category));
+      //hints commiting after this operation if last item
+      if (i == categories.size()) {
+        builder.withYieldAllowed(true);
       }
-      db.setTransactionSuccessful();
-    } finally {
-      db.endTransaction();
+      operations.add(getUnique(builder.build(), feed.getId() + category.getId(), miscOps));
     }
   }
 
-  /**
-   * @return list of prepared stetements - nullsafe
-   */
-  public static Collection<SQLiteStatement> prepareInserts(SQLiteDatabase db,
-                                                           Collection<Subscription> subscriptions) {
-    //approx: subscriptions + categories + mappings
-    List<SQLiteStatement> stms = new ArrayList<>(subscriptions.size() * 3);
-    for (Subscription subscription : subscriptions) {
-      stms.add(createFeedStatement(db, subscription));
-      List<Category> categories = subscription.getCategories();
-      if (categories != null && !categories.isEmpty()) {
-        for (Category category : categories) {
-          stms.add(createCategoryStatement(db, category));
-          stms.add(createFeedsCategoriesStatement(db, subscription, category));
-        }
+  protected static void processTags(final List<ContentProviderOperation> operations,
+                                    final Map<String, ContentProviderOperation> miscOps,
+                                    final Entry entry, final List<Tag> tags) {
+    if (tags == null) {
+      return;
+    }
+    for (int i = 0; i < tags.size(); i++) {
+      Tag tag = tags.get(i);
+      operations.add(miscOps.put(tag.getId(),
+                                 newInsert(Tags.CONTENT_URI).withValues(convert(tag)).build()));
+      Builder builder = newInsert(EntriesTags.CONTENT_URI).withValues(convert(entry, tag));
+      //hints commiting after this operation if last item
+      if (i == tags.size()) {
+        builder.withYieldAllowed(true);
+      }
+      operations.add(miscOps.put(entry.getId() + tag.getId(), builder.build()));
+    }
+  }
+
+  public static ContentValues convert(final Feed subscription) {
+    ContentValues values = new ContentValues();
+    values.put(Feeds.ID, subscription.getId());
+    values.put(Feeds.TITLE, subscription.getTitle());
+    values.put(Feeds.WEBSITE, subscription.getWebsite());
+    values.put(Feeds.VELOCITY, subscription.getVelocity());
+    Feed.State state = subscription.getState();
+    if (state != null) {
+      values.put(Feeds.STATE, state.name());
+    }
+    return values;
+  }
+
+  public static ContentValues convert(final Subscription subscription) {
+    ContentValues values = convert(subscription);
+    values.put(Feeds.SORTID, subscription.getSortid());
+    values.put(Feeds.UPDATED, subscription.getUpdated());
+    return values;
+  }
+
+  public static ContentValues convert(final Category category) {
+    ContentValues values = new ContentValues();
+    values.put(Categories.ID, category.getId());
+    values.put(Categories.LABEL, category.getLabel());
+    return values;
+  }
+
+  public static ContentValues convert(final Feed subscription, final Category category) {
+    return convert(FeedsCategories.FEED_ID, subscription.getId(),
+                   FeedsCategories.CATEGORY_ID, category.getId());
+  }
+
+  public static ContentValues convert(final Entry entry, final Tag tag) {
+    return convert(EntriesTags.ENTRY_ID, entry.getId(), EntriesTags.TAG_ID, tag.getId());
+  }
+
+  public static ContentValues convert(final String name1, final String value1,
+                                      final String name2, final String value2) {
+    ContentValues values = new ContentValues();
+    values.put(name1, value1);
+    values.put(name2, value2);
+    return values;
+  }
+
+  public static ContentValues convert(final Tag tag) {
+    ContentValues values = new ContentValues();
+    values.put(Tags.ID, tag.getId());
+    values.put(Tags.LABEL, tag.getLabel());
+    return values;
+  }
+
+  public static ContentValues convert(final Entry entry) {
+    ContentValues values = new ContentValues();
+    values.put(Entries.ID, entry.getId());
+    values.put(Entries.UNREAD, entry.getUnread());
+    values.put(Entries.TITLE, entry.getTitle());
+    List<String> keywords = entry.getKeywords();
+    if (keywords != null) {
+      values.put(Entries.KEYWORDS, Joiner.on("\t").join(keywords));
+    }
+    values.put(Entries.PUBLISHED, entry.getPublished());
+    values.put(Entries.UPDATED, entry.getUnread());
+    values.put(Entries.CRAWLED, entry.getCrawled());
+    values.put(Entries.AUTHOR, entry.getAuthor());
+    values.put(Entries.ENGAGEMENT, entry.getEngagement());
+    values.put(Entries.ENGAGEMENTRATE, entry.getEngagementRate());
+    Entry.Content summary = entry.getSummary();
+    if (summary != null && summary.getContent() != null) {
+      values.put(Entries.SUMMARY, summary.getContent());
+      Entry.Content.Direction dir = summary.getDirection();
+      if (dir != null) {
+        values.put(Entries.SUMMARY_DIRECTION, dir.name());
       }
     }
-    return stms;
-  }
-
-  protected static SQLiteStatement createFeedStatement(SQLiteDatabase db,
-                                                       Subscription subscription) {
-    SQLiteStatement stm = db.compileStatement(INSERT_FEEDS);
-    for (String key : subscription.keySet()) {
-      switch (key) {
-        case "id": stm.bindString(1, subscription.getId()); continue;
-        case "title": stm.bindString(2, subscription.getTitle()); continue;
-        case "sortid": stm.bindString(3, subscription.getSortid()); continue;
-        case "updated": stm.bindLong(4, subscription.getUpdated()); continue;
-        case "website": stm.bindString(5, subscription.getWebsite()); continue;
+    Entry.Content content = entry.getContent();
+    if (content != null && content.getContent() != null) {
+      values.put(Entries.CONTENT, content.getContent());
+      Entry.Content.Direction dir = content.getDirection();
+      if (dir != null) {
+        values.put(Entries.SUMMARY_DIRECTION, dir.name());
       }
     }
-    return stm;
+    values.put(Entries.ORIGINID, entry.getOriginId());
+    values.put(Entries.FINGERPRINT, entry.getFingerprint());
+    values.put(Entries.ORIGIN_STREAMID, entry.getOrigin().getStreamId());
+    return values;
   }
 
-  protected static SQLiteStatement createCategoryStatement(SQLiteDatabase db, Category category) {
-    SQLiteStatement stm = db.compileStatement(INSERT_CATEGORIES);
-    for (String key : category.keySet()) {
-      switch (key) {
-        case "id": stm.bindString(1, category.getId()); continue;
-        case "label": stm.bindString(2, category.getLabel()); continue;
-      }
-    }
-    return stm;
-  }
-
-  protected static SQLiteStatement createFeedsCategoriesStatement(SQLiteDatabase db,
-                                                                  Feed feed, Category category) {
-    SQLiteStatement stm = db.compileStatement(INSERT_FEEDS_CATEGORIES);
-    stm.bindString(1, feed.getId());
-    stm.bindString(2, category.getId());
-    return stm;
-  }
-
-  public static void create(SQLiteDatabase db) {
+  public static void create(final SQLiteDatabase db) {
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
                + Feeds.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
                + Feeds.TITLE + " TEXT NOT NULL,"
                + Feeds.SORTID + " TEXT,"
-               + Feeds.UPDATED + " INTEGER DEFAULT 0,"
+               + Feeds.UPDATED + " BIGINT,"
                + Feeds.WEBSITE + " TEXT,"
                + Feeds.VELOCITY + " DOUBLE,"
                + Feeds.STATE + " TEXT)");
@@ -237,21 +251,52 @@ public final class FeedlyDbUtils {
                + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
                + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
                + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
+
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + Entries.TBL_NAME + "("
+               + Entries.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Entries.UNREAD + " BOOLEAN,"
+               + Entries.TITLE + " TEXT,"
+               + Entries.KEYWORDS + " TEXT,"
+               + Entries.PUBLISHED + " BIGINT,"
+               + Entries.UPDATED + " BIGINT,"
+               + Entries.CRAWLED + " BIGINT,"
+               + Entries.AUTHOR + " TEXT,"
+               + Entries.ENGAGEMENT + " BIGINT,"
+               + Entries.ENGAGEMENTRATE + " DOUBLE,"
+               + Entries.CONTENT + " TEXT,"
+               + Entries.CONTENT_DIRECTION + " TEXT,"
+               + Entries.ORIGINID + " TEXT,"
+               + Entries.FINGERPRINT + " TEXT,"
+               + Entries.SUMMARY + " TEXT,"
+               + Entries.SUMMARY_DIRECTION + " TEXT,"
+               + Entries.ORIGIN_STREAMID + " TEXT NOT NULL,"
+               + "FOREIGN KEY(" + Entries.ORIGIN_STREAMID + ") REFERENCES "
+               + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE)");
+
+    db.execSQL("CREATE INDEX idx_" + Entries.TBL_NAME + "_" + Entries.TITLE
+               + " ON " + Entries.TBL_NAME + "(" + Entries.TITLE + ")");
+    db.execSQL("CREATE INDEX idx_" + Entries.TBL_NAME + "_" + Entries.AUTHOR
+               + " ON " + Entries.TBL_NAME + "(" + Entries.AUTHOR + ")");
+    db.execSQL("CREATE INDEX idx_" + Entries.TBL_NAME + "_" + Entries.ORIGINID
+               + " ON " + Entries.TBL_NAME + "(" + Entries.ORIGINID + ")");
+    db.execSQL("CREATE UNIQUE INDEX uqx_" + Entries.TBL_NAME + "_" + Entries.FINGERPRINT
+               + " ON " + Entries.TBL_NAME + "(" + Entries.FINGERPRINT + ")");
   }
 
-  public static void dropAll(SQLiteDatabase db) {
+  public static void dropAll(final SQLiteDatabase db) {
     drop(db, "index", "name NOT LIKE 'sqlite_autoindex_%'");
 
-    //TODO: delete dependant last
-    //FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
-    db.execSQL("DROP TABLE 'feeds_categories'");
-    db.execSQL("DROP TABLE 'categories'");
-    db.execSQL("DROP TABLE 'feeds'");
+    //TODO: preserve order (dependency)
+//    FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
+    db.execSQL("DROP TABLE IF EXISTS 'feeds_categories'");
+    db.execSQL("DROP TABLE IF EXISTS 'entries'");
+    db.execSQL("DROP TABLE IF EXISTS 'categories'");
+    db.execSQL("DROP TABLE IF EXISTS 'feeds'");
 
     drop(db, "view", null);
   }
 
-  public static void drop(SQLiteDatabase db, String type, String whereClause) {
+  public static void drop(final SQLiteDatabase db, final String type, final String whereClause) {
     String sql = "SELECT name FROM sqlite_master WHERE type='" + type + '\'';
     if (whereClause != null) {
       sql += " AND " + whereClause;
@@ -260,7 +305,7 @@ public final class FeedlyDbUtils {
     Cursor c = db.rawQuery(sql, null);
     if (c.moveToFirst()) {
       while (!c.isAfterLast()) {
-        db.execSQL("DROP " + type + " '" + c.getString(0) + '\'');
+        db.execSQL("DROP " + type + " IF EXISTS '" + c.getString(0) + '\'');
         c.moveToNext();
       }
     }
@@ -273,7 +318,7 @@ public final class FeedlyDbUtils {
    * @param strings2 - second array
    * @return merged
    */
-  public static String[] merge(String[] strings1, String... strings2) {
+  public static String[] merge(final String[] strings1, final String... strings2) {
     if (strings1 == null || strings2.length == 0) {
       if (strings2 == null || strings2.length == 0) {
         return null;

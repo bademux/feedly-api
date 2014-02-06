@@ -68,6 +68,15 @@ public abstract class IdGenericJson extends GenericJson {
 
   @Override
   public int hashCode() { return id.hashCode(); }
+
+  /**
+   *
+   * @param id format id-type/data
+   * @return data after slash
+   */
+  public static final String parse(String id) {
+    return isNullOrEmpty(id) ? null : id.substring(id.indexOf('/') + 1);
+  }
 }
 
 

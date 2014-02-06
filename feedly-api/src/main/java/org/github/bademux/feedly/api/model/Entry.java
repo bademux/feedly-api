@@ -53,7 +53,8 @@ public final class Entry extends GenericJson implements Markable {
   private List<Category> categories;
   @Key
   private List<Tag> tags;
-
+  @Key
+  private Origin origin;
   @Key
   private List<Location> alternate;
   @Key
@@ -128,6 +129,8 @@ public final class Entry extends GenericJson implements Markable {
 
   public List<Location> getCanonical() { return canonical; }
 
+  public Origin getOrigin() { return origin; }
+
   public Content getContent() { return content; }
 
   public void setContent(final String content, final Content.Direction direction) {
@@ -139,8 +142,6 @@ public final class Entry extends GenericJson implements Markable {
   public String getOriginId() { return originId; }
 
   public String getFingerprint() { return fingerprint; }
-
-  public String getSid() { return sid; }
 
   public Content getSummary() { return summary; }
 
@@ -192,6 +193,34 @@ public final class Entry extends GenericJson implements Markable {
     public String getContent() { return content; }
 
     public Direction getDirection() { return direction; }
+  }
+
+  public static class Origin {
+
+    @Key
+    private String streamId;
+    @Key
+    private String title;
+    @Key
+    private String htmlUrl;
+
+    public Origin(final String streamId, final String title, final String htmlUrl) {
+      this.streamId = streamId;
+      this.title = title;
+      this.htmlUrl = htmlUrl;
+    }
+
+    public Origin() {}
+
+    public String getStreamId() { return streamId; }
+
+    public String getTitle() { return title; }
+
+    public String getHtmlUrl() { return htmlUrl; }
+
+    public Feed toFeed() {
+      return new Subscription(streamId.substring(streamId.indexOf('/') + 1), title);
+    }
   }
 
   @SuppressWarnings("serial")

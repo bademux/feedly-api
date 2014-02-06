@@ -34,10 +34,6 @@ public class Category extends IdGenericJson implements Markable, Stream {
   public static final String ALL = "global.all";
   /** All the articles from all the sources the user subscribes to and are not in a category. */
   public static final String UNCATEGORIZED = "global.uncategorized";
-  /** List of entries the user has recently read - limited to the feeds the users subscribes to */
-  public static final String READ = "global.read";
-  /** Users can save articles for later. Equivalent of starring articles in Google Reader. */
-  public static final String SAVED = "global.saved";
 
   @Key
   private String label;

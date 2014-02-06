@@ -28,9 +28,10 @@ public class Tag extends IdGenericJson implements Stream {
 
   public static final String PREFIX = "tag";
 
-  public static final String SAVED = "global.saved";
-
+  /** List of entries the user has recently read - limited to the feeds the users subscribes to */
   public static final String READ = "global.read";
+  /** Users can save articles for later. Equivalent of starring articles in Google Reader. */
+  public static final String SAVED = "global.saved";
 
   @Key
   private String label;

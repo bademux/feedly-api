@@ -29,7 +29,7 @@ public final class FeedlyContract {
   /** A content:// style uri to the authority for the contacts provider */
   public static final Uri AUTHORITY_URI = Uri.parse("content://" + AUTHORITY);
 
-  /**  Class that represents a Feed list */
+  /** Class that represents a Feed list */
   public static final class Feeds implements FeedsColumns {
 
     public static final String TBL_NAME = "feeds";
@@ -51,7 +51,7 @@ public final class FeedlyContract {
     private Categories() {}
   }
 
-  /** Class that represents a FeedsCategories list - used only internaly */
+  /** Class that represents a Feed - Category mappings - used only internaly */
   public static final class FeedsCategories implements FeedsCategoriesColumns {
 
     public static final String TBL_NAME = "feeds_categories";
@@ -62,7 +62,18 @@ public final class FeedlyContract {
     private FeedsCategories() {}
   }
 
-  /** Class that represents a FeedsByCategory list - sql View*/
+  /** Class that represents a Entry - Tag mappings - used only internaly */
+  public static final class EntriesTags implements EntriesTagsColumns {
+
+    public static final String TBL_NAME = "entries_tags";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private EntriesTags() {}
+  }
+
+  /** Class that represents a FeedsByCategory list - sql View */
   public static final class FeedsByCategory implements FeedsColumns, FeedsCategoriesColumns {
 
     public static final String TBL_NAME = "feeds_by_category";
@@ -73,11 +84,38 @@ public final class FeedlyContract {
     private FeedsByCategory() {}
   }
 
+  /** Class that represents a Entries */
+  public static final class Tags implements TagsColumns {
+
+    public static final String TBL_NAME = "tags";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private Tags() {}
+  }
+
+  /** Class that represents a Entries */
+  public static final class Entries implements EntriesColumns {
+
+    public static final String TBL_NAME = "entries";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private Entries() {}
+  }
 
   protected interface FeedsCategoriesColumns {
 
     public static final String FEED_ID = "feed_id", CATEGORY_ID = "category_id";
   }
+
+  protected interface EntriesTagsColumns {
+
+    public static final String ENTRY_ID = "entry_id", TAG_ID = "tag_id";
+  }
+
 
   protected interface FeedsColumns {
 
@@ -94,5 +132,34 @@ public final class FeedlyContract {
 
     public static final String ID = "id";
     public static final String LABEL = "label";
+  }
+
+  protected interface TagsColumns {
+
+    public static final String ID = "id";
+    public static final String LABEL = "label";
+  }
+
+  protected interface EntriesColumns {
+
+    public static final String ID = "id";
+    public static final String UNREAD = "unread";
+    public static final String TITLE = "title";
+    public static final String KEYWORDS = "keywords";
+    public static final String PUBLISHED = "published";
+    public static final String UPDATED = "updated";
+    public static final String CRAWLED = "crawled";
+    public static final String AUTHOR = "author";
+    public static final String ENGAGEMENT = "engagement";
+    public static final String ENGAGEMENTRATE = "engagementrate";
+    // public static final List<Location> ALTERNATE;
+    // public static final List<Location> CANONICAL;
+    public static final String SUMMARY = "summary";
+    public static final String SUMMARY_DIRECTION = "summary_direction";
+    public static final String CONTENT = "content";
+    public static final String CONTENT_DIRECTION = "content_direction";
+    public static final String FINGERPRINT = "fingerprint";
+    public static final String ORIGINID = "originid";
+    public static final String ORIGIN_STREAMID = "origin_streamid";
   }
 }

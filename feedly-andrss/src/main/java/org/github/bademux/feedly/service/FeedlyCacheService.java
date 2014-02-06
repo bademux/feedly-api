@@ -24,8 +24,11 @@ import android.content.Intent;
 import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
+import org.github.bademux.feedly.api.model.Category;
+import org.github.bademux.feedly.api.model.EntriesResponse;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.provider.FeedlyContract;
+import org.github.bademux.feedly.api.service.Feedly;
 import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 
@@ -34,7 +37,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.prepareInsertOperations;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.insertOpsForEntries;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.insertOpsForSubscriptions;
 
 public class FeedlyCacheService extends IntentService {
 
@@ -58,7 +62,7 @@ public class FeedlyCacheService extends IntentService {
     Log.i(TAG, "onStartCommand " + intent.getAction());
     if (ServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
       try {
-//        startPooling();
+        fetchEntries();
       } catch (Exception e) {
         Log.e(TAG, "error while pooling", e);
       }
@@ -66,11 +70,27 @@ public class FeedlyCacheService extends IntentService {
   }
 
   /** Pools data from feedly servers and stores it in database */
-  protected void startPooling() throws Exception {
+  protected void fetchSubscriptions() throws Exception {
     List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
-    Collection<ContentProviderOperation> operations = prepareInsertOperations(subscriptions);
-    getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
+    if (subscriptions != null) {
+      Collection<ContentProviderOperation> operations = insertOpsForSubscriptions(subscriptions);
+      getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
+    }
   }
+
+  protected void fetchEntries() throws Exception {
+    Feedly service = mFeedlyUtil.service();
+    Feedly.Streams.Contents request = service.streams().contents(service.newCategory(Category.ALL));
+//    if (newerThan != null){
+//      request.setNewerThan(newerThan);
+//    }
+    EntriesResponse result = request.execute();
+    if (result != null) {
+      Collection<ContentProviderOperation> operations = insertOpsForEntries(result.items());
+      getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
+    }
+  }
+
 
   public FeedlyCacheService() { super(TAG); }
 

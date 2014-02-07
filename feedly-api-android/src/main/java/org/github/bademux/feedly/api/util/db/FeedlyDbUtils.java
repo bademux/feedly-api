@@ -71,22 +71,28 @@ public final class FeedlyDbUtils {
     List<ContentProviderOperation> operations = new ArrayList<>(entries.size() * 2);
     Map<String, ContentProviderOperation> miscOps = new HashMap<>();
     for (Entry entry : entries) {
-      operations.add(newInsert(Entries.CONTENT_URI).withValues(convert(entry)).build());
       Entry.Origin stream = entry.getOrigin();
+
       Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
-      operations.add(getUnique(newInsert(Feeds.CONTENT_URI).withValues(convert(feed)).build(),
-                               feed.getId(), miscOps));
+      addIfNew(operations, miscOps, newInsert(Feeds.CONTENT_URI).withValues(convert(feed)),
+               feed.getId());
+
+      operations.add(newInsert(Entries.CONTENT_URI).withValues(convert(entry)).build());
+
       processCategories(operations, miscOps, feed, entry.getCategories());
       processTags(operations, miscOps, entry, entry.getTags());
     }
     return operations;
   }
 
-  private static ContentProviderOperation getUnique(
-      final ContentProviderOperation op, final String id,
-      final Map<String, ContentProviderOperation> miscOps) {
-    ContentProviderOperation uniqueOp = miscOps.put(id, op);
-    return uniqueOp == null ? op : uniqueOp;
+  private static void addIfNew(final List<ContentProviderOperation> operations,
+                               final Map<String, ContentProviderOperation> miscOps,
+                               final Builder builder, final String id) {
+    if (!miscOps.containsKey(id)) {
+      ContentProviderOperation op = builder.build();
+      miscOps.put(id, op);
+      operations.add(op);
+    }
   }
 
   protected static void processCategories(final List<ContentProviderOperation> operations,
@@ -97,14 +103,15 @@ public final class FeedlyDbUtils {
     }
     for (int i = 0; i < categories.size(); i++) {
       Category category = categories.get(i);
-      Builder builderCategories = newInsert(Categories.CONTENT_URI).withValues(convert(category));
-      operations.add(getUnique(builderCategories.build(), category.getId(), miscOps));
+      addIfNew(operations, miscOps,
+               newInsert(Categories.CONTENT_URI).withValues(convert(category)), category.getId());
+
       Builder builder = newInsert(FeedsCategories.CONTENT_URI).withValues(convert(feed, category));
       //hints commiting after this operation if last item
       if (i == categories.size()) {
         builder.withYieldAllowed(true);
       }
-      operations.add(getUnique(builder.build(), feed.getId() + category.getId(), miscOps));
+      addIfNew(operations, miscOps, builder, feed.getId() + category.getId());
     }
   }
 
@@ -116,8 +123,8 @@ public final class FeedlyDbUtils {
     }
     for (int i = 0; i < tags.size(); i++) {
       Tag tag = tags.get(i);
-      operations.add(miscOps.put(tag.getId(),
-                                 newInsert(Tags.CONTENT_URI).withValues(convert(tag)).build()));
+      addIfNew(operations, miscOps,
+               newInsert(Tags.CONTENT_URI).withValues(convert(tag)), tag.getId());
       Builder builder = newInsert(EntriesTags.CONTENT_URI).withValues(convert(entry, tag));
       //hints commiting after this operation if last item
       if (i == tags.size()) {

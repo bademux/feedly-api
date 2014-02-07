@@ -110,11 +110,7 @@ public class FeedlyCacheProvider extends ContentProvider {
   @Override
   public Uri insert(final Uri uri, final ContentValues values) {
     Log.i(TAG, "Inserting into database");
-    int code = URI_MATCHER.match(uri);
-    if (code == -1) {
-      throw new UnsupportedOperationException("Unmatched Uri: " + uri);
-    }
-    long rowId = insert(mHelper.getWritableDatabase(), code, values);
+    long rowId = insert(mHelper.getWritableDatabase(), URI_MATCHER.match(uri), values);
     return Uri.withAppendedPath(uri, String.valueOf(rowId));
   }
 
@@ -132,6 +128,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.replace(Tags.TBL_NAME, null, values);
       case Code.ENTRIES_TAGS:
         return db.insertWithOnConflict(EntriesTags.TBL_NAME, null, values, CONFLICT_IGNORE);
+      case UriMatcher.NO_MATCH:
+        throw new UnsupportedOperationException("Unmatched Uri");
       default:
         throw new UnsupportedOperationException("Unsupported Uri code: " + uriCode);
     }
@@ -220,7 +218,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 14;
+    private static final int VERSION = 1;
 
     static final String TAG = "DatabaseHelper";
   }

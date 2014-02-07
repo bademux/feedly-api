@@ -50,7 +50,7 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter {
   public FeedlyCursorAdapter(Context context) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, android.R.layout.simple_list_item_1, null,
-          from, new int[]{android.R.id.text1}, 0);
+          from, new int[]{android.R.id.text1}, SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
 
     mQueryHandler = createAsyncQueryHandler(context.getContentResolver());
   }
@@ -76,5 +76,5 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter {
 
   private static final int TOKEN = 0;
 
-  private static final String[] from = new String[]{Entries.ID};
+  private static final String[] from = new String[]{Entries.TITLE};
 }

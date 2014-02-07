@@ -53,13 +53,10 @@ public class FeedListFragment extends ListFragment {
 
     mAdapter.startQuery();
 
-    // This is the View which is created by ListFragment
-    ViewGroup viewGroup = (ViewGroup) view;
-
     // We need to create a PullToRefreshLayout manually
-    mPullToRefreshLayout = new PullToRefreshLayout(viewGroup.getContext());
+    mPullToRefreshLayout = new PullToRefreshLayout(view.getContext());
 
-    ActionBarPullToRefresh.from(getActivity()).insertLayoutInto(viewGroup)
+    ActionBarPullToRefresh.from(getActivity()).insertLayoutInto((ViewGroup) view)
         .theseChildrenArePullable(getListView(), getListView().getEmptyView())
         .listener(new OnRefreshListener() {
           @Override

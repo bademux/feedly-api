@@ -28,16 +28,18 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.util.Log;
 
-import org.github.bademux.feedly.api.provider.FeedlyContract;
 import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.AUTHORITY;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyCacheProvider extends ContentProvider {
@@ -45,16 +47,16 @@ public class FeedlyCacheProvider extends ContentProvider {
   private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
   static {
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Entries.TBL_NAME + "/#", Code.ENTRY);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Entries.TBL_NAME, Code.ENTRIES);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY,
-                       FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, FeedsCategories.TBL_NAME, Code.FEEDS_CATEGORIES);
-    URI_MATCHER.addURI(FeedlyContract.AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
+    URI_MATCHER.addURI(AUTHORITY, Entries.TBL_NAME + "/#", Code.ENTRY);
+    URI_MATCHER.addURI(AUTHORITY, Entries.TBL_NAME, Code.ENTRIES);
+    URI_MATCHER.addURI(AUTHORITY, EntriesByTag.TBL_NAME + "/*", Code.ENTRIES_BY_TAG);
+    URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
+    URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
+    URI_MATCHER.addURI(AUTHORITY, FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
+    URI_MATCHER.addURI(AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
+    URI_MATCHER.addURI(AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
+    URI_MATCHER.addURI(AUTHORITY, FeedsCategories.TBL_NAME, Code.FEEDS_CATEGORIES);
+    URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
   }
 
   /** {@inheritDoc} */
@@ -71,6 +73,11 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.ENTRIES:
         return db.query(Entries.TBL_NAME, merge(projection, "rowid as _id"),
                         null, null, null, null, sortOrder);
+      case Code.ENTRIES_BY_TAG:
+        return db.query(EntriesByTag.TBL_NAME,
+                        merge(projection, "rowid as _id", EntriesByTag.TAG_ID),
+                        EntriesByTag.TAG_ID + "=?",
+                        new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.FEED:
         return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.FEEDS:
@@ -86,6 +93,12 @@ public class FeedlyCacheProvider extends ContentProvider {
                         null, null, null);
       case Code.CATEGORIES:
         return db.query(Categories.TBL_NAME, merge(projection, "rowid as _id"),
+                        null, null, null, null, sortOrder);
+      case Code.TAG:
+        return db.query(Tags.TBL_NAME, projection, selection, selectionArgs,
+                        null, null, null);
+      case Code.TAGS:
+        return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
                         null, null, null, null, sortOrder);
       case Code.AUTHORITY: return null;
       default:
@@ -115,6 +128,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.replace(Categories.TBL_NAME, null, values);
       case Code.FEEDS_CATEGORIES:
         return db.insertWithOnConflict(FeedsCategories.TBL_NAME, null, values, CONFLICT_IGNORE);
+      case Code.TAGS:
+        return db.replace(Tags.TBL_NAME, null, values);
       case Code.ENTRIES_TAGS:
         return db.insertWithOnConflict(EntriesTags.TBL_NAME, null, values, CONFLICT_IGNORE);
       default:
@@ -137,6 +152,10 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.delete(Categories.TBL_NAME, selection, selectionArgs);
       case Code.FEEDS_CATEGORIES:
         return db.delete(FeedsCategories.TBL_NAME, selection, selectionArgs);
+      case Code.TAGS:
+        return db.delete(Tags.TBL_NAME, selection, selectionArgs);
+      case Code.ENTRIES_TAGS:
+        return db.delete(EntriesTags.TBL_NAME, selection, selectionArgs);
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -201,7 +220,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 13;
+    private static final int VERSION = 14;
 
     static final String TAG = "DatabaseHelper";
   }
@@ -212,6 +231,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int FEEDS = 100, FEED = 101, FEEDS_BY_CATEGORY = 102;
     static final int CATEGORIES = 200, CATEGORY = 201;
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
-    static final int ENTRIES = 400, ENTRY = 401;
+    static final int TAGS = 400, TAG = 401;
+    static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502;
   }
 }

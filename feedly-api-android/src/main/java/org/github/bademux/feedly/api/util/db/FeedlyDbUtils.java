@@ -33,7 +33,6 @@ import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.model.IdGenericJson;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.model.Tag;
-import org.github.bademux.feedly.api.provider.FeedlyContract;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +44,10 @@ import static android.content.ContentProviderOperation.Builder;
 import static android.content.ContentProviderOperation.newInsert;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 
@@ -247,7 +248,7 @@ public final class FeedlyDbUtils {
                + Categories.TBL_NAME + "(" + Categories.ID
                + ") ON UPDATE CASCADE ON DELETE CASCADE)");
 
-    db.execSQL("CREATE VIEW " + FeedlyContract.FeedsByCategory.TBL_NAME + " AS "
+    db.execSQL("CREATE VIEW " + FeedsByCategory.TBL_NAME + " AS "
                + "SELECT * FROM " + Feeds.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
                + " ON " + Feeds.TBL_NAME + "." + Feeds.ID + "="
                + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
@@ -281,6 +282,28 @@ public final class FeedlyDbUtils {
                + " ON " + Entries.TBL_NAME + "(" + Entries.ORIGINID + ")");
     db.execSQL("CREATE UNIQUE INDEX uqx_" + Entries.TBL_NAME + "_" + Entries.FINGERPRINT
                + " ON " + Entries.TBL_NAME + "(" + Entries.FINGERPRINT + ")");
+
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + Tags.TBL_NAME + "("
+               + Tags.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Tags.LABEL + " TEXT)");
+    db.execSQL("CREATE INDEX idx_" + Tags.TBL_NAME + "_" + Tags.LABEL
+               + " ON " + Tags.TBL_NAME + "(" + Tags.LABEL + ")");
+
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + EntriesTags.TBL_NAME + "("
+               + EntriesTags.ENTRY_ID + " TEXT,"
+               + EntriesTags.TAG_ID + " TEXT,"
+               + "PRIMARY KEY(" + EntriesTags.ENTRY_ID + "," + EntriesTags.TAG_ID
+               + ") ON CONFLICT IGNORE,"
+               + "FOREIGN KEY(" + EntriesTags.ENTRY_ID + ") REFERENCES "
+               + Entries.TBL_NAME + "(" + Entries.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+               + "FOREIGN KEY(" + EntriesTags.TAG_ID + ") REFERENCES "
+               + Tags.TBL_NAME + "(" + Tags.ID
+               + ") ON UPDATE CASCADE ON DELETE CASCADE)");
+
+    db.execSQL("CREATE VIEW " + EntriesByTag.TBL_NAME + " AS "
+               + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + EntriesTags.TBL_NAME
+               + " ON " + Entries.TBL_NAME + "." + Entries.ID + "="
+               + EntriesTags.TBL_NAME + "." + EntriesTags.ENTRY_ID);
   }
 
   public static void dropAll(final SQLiteDatabase db) {
@@ -289,9 +312,11 @@ public final class FeedlyDbUtils {
     //TODO: preserve order (dependency)
 //    FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
     db.execSQL("DROP TABLE IF EXISTS 'feeds_categories'");
+    db.execSQL("DROP TABLE IF EXISTS 'entries_tags'");
     db.execSQL("DROP TABLE IF EXISTS 'entries'");
     db.execSQL("DROP TABLE IF EXISTS 'categories'");
     db.execSQL("DROP TABLE IF EXISTS 'feeds'");
+    db.execSQL("DROP TABLE IF EXISTS 'tags'");
 
     drop(db, "view", null);
   }

@@ -224,7 +224,7 @@ public final class FeedlyDbUtils {
 
   public static void create(final SQLiteDatabase db) {
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Feeds.TBL_NAME + "("
-               + Feeds.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Feeds.ID + " TEXT PRIMARY KEY NOT NULL,"
                + Feeds.TITLE + " TEXT NOT NULL,"
                + Feeds.SORTID + " TEXT,"
                + Feeds.UPDATED + " BIGINT,"
@@ -239,7 +239,7 @@ public final class FeedlyDbUtils {
                + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Categories.TBL_NAME + "("
-               + Categories.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Categories.ID + " TEXT PRIMARY KEY NOT NULL,"
                + Categories.LABEL + " TEXT)");
     db.execSQL("CREATE INDEX idx_" + Categories.TBL_NAME + "_" + Categories.LABEL
                + " ON " + Categories.TBL_NAME + "(" + Categories.LABEL + ")");
@@ -261,7 +261,7 @@ public final class FeedlyDbUtils {
                + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Entries.TBL_NAME + "("
-               + Entries.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Entries.ID + " TEXT PRIMARY KEY NOT NULL,"
                + Entries.UNREAD + " BOOLEAN,"
                + Entries.TITLE + " TEXT,"
                + Entries.KEYWORDS + " TEXT,"
@@ -291,7 +291,7 @@ public final class FeedlyDbUtils {
                + " ON " + Entries.TBL_NAME + "(" + Entries.FINGERPRINT + ")");
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Tags.TBL_NAME + "("
-               + Tags.ID + " TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,"
+               + Tags.ID + " TEXT PRIMARY KEY NOT NULL,"
                + Tags.LABEL + " TEXT)");
     db.execSQL("CREATE INDEX idx_" + Tags.TBL_NAME + "_" + Tags.LABEL
                + " ON " + Tags.TBL_NAME + "(" + Tags.LABEL + ")");

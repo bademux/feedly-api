@@ -18,6 +18,8 @@
  */
 
 /*
+ * Copyright 2014 Bademus
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -35,39 +37,48 @@
  *                Bademus
  */
 
-package org.github.bademux.feedly.andrss.helpers;
+package org.github.bademux.feedly.api.util.db;
 
 import android.content.AsyncQueryHandler;
-import android.content.Context;
+import android.content.ContentResolver;
 import android.database.Cursor;
-import android.widget.SimpleCursorAdapter;
+import android.util.SparseArray;
 
-import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
+public final class BackgroundQueryHandler extends AsyncQueryHandler {
 
-import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
-import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
-
-public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
-
-  public FeedlyCursorAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
-    //The constructor does not take a Cursor - avoiding querying the db on the main thread.
-    super(context, android.R.layout.simple_list_item_1, null, from, new int[]{android.R.id.text1},
-          SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
-
-    mQueryHandler = queryHandler;
-    token = queryHandler.addQueryListener(this);
+  /**
+   * Assign the given {@link AsyncQueryListener} to receive query events from asynchronous calls.
+   * Will replace any existing listener.
+   */
+  public synchronized int addQueryListener(final AsyncQueryListener listener) {
+    int token = mListeners.size() + 1;
+    mListeners.put(token, listener);
+    return token;
   }
 
-  public void startQuery() {
-    mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, from, null, null, null);
-  }
-
+  /** {@inheritDoc} */
   @Override
-  public void onQueryComplete(final Object cookie, final Cursor cursor) { changeCursor(cursor); }
+  protected void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
+    final AsyncQueryListener listener = mListeners.get(token);
+    if (listener != null) {
+      listener.onQueryComplete(cookie, cursor);
+    } else if (cursor != null) {
+      cursor.close();
+    }
+  }
 
-  private final AsyncQueryHandler mQueryHandler;
+  public BackgroundQueryHandler(ContentResolver contentResolver) { super(contentResolver); }
 
-  private int token;
+  private final SparseArray<AsyncQueryListener> mListeners = new SparseArray<AsyncQueryListener>(5);
 
-  private static final String[] from = new String[]{Entries.TITLE};
+  public interface AsyncQueryListener {
+
+    /**
+     * Called when an asynchronous query is completed.
+     *
+     * @param cookie the cookie object passed in from {@link #startQuery}.
+     * @param cursor The cursor holding the results from the query.
+     */
+    void onQueryComplete(final Object cookie, final Cursor cursor);
+  }
 }

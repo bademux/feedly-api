@@ -218,7 +218,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     static final String TAG = "DatabaseHelper";
   }

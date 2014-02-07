@@ -18,62 +18,60 @@
 
 package org.github.bademux.feedly.andrss.helpers;
 
-import android.content.AsyncQueryHandler;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.widget.SimpleCursorTreeAdapter;
 
+import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
+
+import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 
 public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
 
-  public FeedlyCursorTreeAdapter(Context context) {
+  public FeedlyCursorTreeAdapter(Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, null,
           android.R.layout.simple_expandable_list_item_1, group, new int[]{android.R.id.text1},
           android.R.layout.simple_expandable_list_item_1, child, new int[]{android.R.id.text1});
 
-    mQueryHandler = new FeedlyTreeAsyncQueryHandler(context.getContentResolver());
+    mQueryHandler = queryHandler;
+
+    tokenGroup = mQueryHandler.addQueryListener(new AsyncQueryListener() {
+      @Override
+      public void onQueryComplete(final Object cookie, final Cursor cursor) {
+        setGroupCursor(cursor);
+      }
+    });
+    tokenChild = mQueryHandler.addQueryListener(new AsyncQueryListener() {
+      @Override
+      public void onQueryComplete(final Object cookie, final Cursor cursor) {
+        setChildrenCursor((Integer) cookie, cursor);
+      }
+    });
   }
 
   public void startQueryGroup() {
-    mQueryHandler.startQuery(TOKEN_GROUP, null, Categories.CONTENT_URI, group, null, null, null);
+    mQueryHandler.startQuery(tokenGroup, null, Categories.CONTENT_URI, group, null, null, null);
   }
 
   @Override
   protected Cursor getChildrenCursor(final Cursor groupCursor) {
     String id = groupCursor.getString(groupCursor.getColumnIndex(Categories.ID));
     Uri.Builder builder = FeedsByCategory.CONTENT_URI.buildUpon().appendPath(id);
-    mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(), builder.build(),
+    mQueryHandler.startQuery(tokenChild, groupCursor.getPosition(), builder.build(),
                              child, null, null, null);
     return null;
   }
 
-  private final AsyncQueryHandler mQueryHandler;
+  private final BackgroundQueryHandler mQueryHandler;
+
+  private final int tokenGroup, tokenChild;
 
   private static final String[] group = new String[]{Categories.LABEL, Categories.ID};
 
   private static final String[] child = new String[]{Feeds.TITLE};
-
-  private static final int TOKEN_GROUP = 0, TOKEN_CHILD = 1;
-
-  private class FeedlyTreeAsyncQueryHandler extends AsyncQueryHandler {
-    @Override
-    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-      switch (token) {
-        case TOKEN_GROUP: setGroupCursor(cursor); break;
-        case TOKEN_CHILD: setChildrenCursor((Integer) cookie, cursor); break;
-        default:
-          if (cursor != null) {
-            cursor.close();
-          }
-      }
-    }
-
-    public FeedlyTreeAsyncQueryHandler(final ContentResolver cr) {  super(cr); }
-  }
 }

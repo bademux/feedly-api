@@ -33,6 +33,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
 import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
@@ -55,6 +56,7 @@ public class MainActivity extends Activity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
     try {
       mFeedlyUtil = new FeedlyUtil(this, getString(R.string.client_id),
                                    getString(R.string.client_secret));
@@ -62,6 +64,8 @@ public class MainActivity extends Activity
       Log.e(TAG, "Something goes wrong", e);
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
+
+    mQueryHandler = new BackgroundQueryHandler(this.getContentResolver());
 
     setContentView(R.layout.activity_main);
 
@@ -236,17 +240,17 @@ public class MainActivity extends Activity
 // TODO: Implement
   }
 
-  /**
-   * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
-   */
+  public BackgroundQueryHandler getAsynchQueryHandler() { return mQueryHandler; }
+
+  /** Fragment managing the behaviors, interactions and presentation of the navigation drawer. */
   private NavigationDrawerFragment mNavigationDrawerFragment;
 
-  /**
-   * Used to store the last screen title. For use in {@link #restoreActionBar()}.
-   */
+  /** Used to store the last screen title. For use in {@link #restoreActionBar()}. */
   private CharSequence mTitle;
 
   private FeedlyUtil mFeedlyUtil;
+
+  private BackgroundQueryHandler mQueryHandler;
 
   private static final String KEY_PREFS_FIRST_LAUNCH = "1stlaunch";
 

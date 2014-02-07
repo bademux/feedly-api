@@ -54,9 +54,10 @@ public class NavigationDrawerFragment extends Fragment {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
+    MainActivity activity = (MainActivity) getActivity();
     // Read in the flag indicating whether or not the user has demonstrated awareness of the
     // drawer. See PREF_USER_LEARNED_DRAWER for details.
-    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getActivity());
+    SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(activity);
     mUserLearnedDrawer = sp.getBoolean(PREF_USER_LEARNED_DRAWER, false);
 
     if (savedInstanceState != null) {
@@ -67,7 +68,7 @@ public class NavigationDrawerFragment extends Fragment {
     // Select either the default item (0) or the last selected item.
     selectItem(mCurrentSelectedPosition);
 
-    mAdapter = new FeedlyCursorTreeAdapter(getActivity());
+    mAdapter = new FeedlyCursorTreeAdapter(getActivity(), activity.getAsynchQueryHandler());
   }
 
   @Override

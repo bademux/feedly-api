@@ -43,7 +43,8 @@ public class FeedListFragment extends ListFragment {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    mAdapter = new FeedlyCursorAdapter(getActivity());
+    MainActivity activity = (MainActivity) getActivity();
+    mAdapter = new FeedlyCursorAdapter(activity, activity.getAsynchQueryHandler());
     setListAdapter(mAdapter);
   }
 

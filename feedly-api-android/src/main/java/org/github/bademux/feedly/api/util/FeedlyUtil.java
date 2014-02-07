@@ -79,6 +79,9 @@ public final class FeedlyUtil {
   }
 
   public synchronized Feedly service() {
+    if (credential == null){
+      throw new IllegalStateException("Please login");
+    }
     if (serviceInstance == null) {
       serviceInstance = new DevFeedly.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).build();
     }

@@ -251,8 +251,10 @@ public class FeedlyConMan {
     String clientSecret = checkNotNull(secrets.getProperty("feedly.client_secret"));
 
     // set up authorization code flow
-    FeedlyAuthorizationCodeFlow flow = new DevFeedlyAuthorizationCodeFlow.Builder(
-        HTTP_TRANSPORT, JSON_FACTORY, clientId, clientSecret)
+    FeedlyAuthorizationCodeFlow flow = new DevFeedlyAuthorizationCodeFlow.Builder(HTTP_TRANSPORT,
+                                                                                  JSON_FACTORY,
+                                                                                  clientId,
+                                                                                  clientSecret)
         .setDataStoreFactory(DATA_STORE_FACTORY).build();
 
     // authorize

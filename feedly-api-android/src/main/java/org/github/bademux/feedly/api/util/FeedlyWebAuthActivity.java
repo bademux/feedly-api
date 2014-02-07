@@ -25,14 +25,13 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-
-import org.github.bademux.feedly.api.oauth2.FeedlyOAuthConstants;
 
 public class FeedlyWebAuthActivity extends Activity {
 
@@ -42,18 +41,17 @@ public class FeedlyWebAuthActivity extends Activity {
 
     //setup fullscreen
     requestWindowFeature(Window.FEATURE_NO_TITLE);
-    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                         WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
     mProgressDialog = new ProgressDialog(this);
-//    mProgressDialog.setTitle(getText(android.R.string.app_name));
-//    mProgressDialog.setMessage(getText(android.R.string.msg_loading));
 
     WebView webView = createWebView(this);
     setContentView(webView);
-    webView.loadUrl(getIntent().getStringExtra(REQUEST_URL_TAG));
+    webView.loadUrl(getIntent().getData().getSchemeSpecificPart());
   }
 
-  private WebView createWebView(Context context) {
+  private WebView createWebView(final Context context) {
     WebView webView = new WebView(context);
     webView.setWebViewClient(createWebViewClient());
     webView.setScrollBarStyle(WebView.SCROLLBARS_OUTSIDE_OVERLAY);
@@ -76,9 +74,9 @@ public class FeedlyWebAuthActivity extends Activity {
       @Override
       public boolean shouldOverrideUrlLoading(WebView view, String url) {
         mProgressDialog.dismiss();
-        if (url.startsWith(FeedlyOAuthConstants.REDIRECT_URI_LOCAL)
-            || url.startsWith(FeedlyOAuthConstants.REDIRECT_URN)) {
-          FeedlyWebAuthActivity.this.finish(url);
+        if (url.startsWith(REDIRECT_URI_LOCAL) || url.startsWith(REDIRECT_URN)) {
+          setResult(Activity.RESULT_OK, FeedlyWebAuthActivity.this.fillWithReturnValue(url));
+          finish();
           return true;
         }
         return false;
@@ -86,35 +84,40 @@ public class FeedlyWebAuthActivity extends Activity {
     };
   }
 
-  protected void finish(String responseUrl) {
-    Intent intent = getIntent();
-    intent.putExtra(RESPONSE_URL_TAG, responseUrl);
-    setResult(Activity.RESULT_OK, intent);
-    finish();
+  protected Intent fillWithReturnValue(final String responseUrl) {
+    return getIntent().putExtra(RESPONSE_URL_TAG, responseUrl);
   }
 
-  public static void startActivityForResult(Activity target, String requestUrl, String state) {
-    Intent intend = new Intent(target, FeedlyWebAuthActivity.class);
-    intend.putExtra(REQUEST_URL_TAG, requestUrl);
-    intend.putExtra(STATE_TAG, state);
-    target.startActivityForResult(intend, FeedlyWebAuthActivity.REQUEST_CODE);
+  /**
+   * Util Method - helps to prepare auth intent
+   *
+   * @param target     - activity that handles response
+   * @param requestUrl - auth data
+   */
+  public static void startActivityForResult(final Activity target, final String requestUrl) {
+    Uri data = Uri.fromParts("feedlyauth", requestUrl, null);
+    Intent intend = new Intent(ACTION_FEEDLY_AUTH, data, target, FeedlyWebAuthActivity.class);
+    target.startActivityForResult(intend, REQUEST_CODE);
   }
 
-  public static void startActivityForResult(Activity target, String requestUrl) {
-    startActivityForResult(target, requestUrl, null);
-  }
-
-  public static String getResponceUrl(Intent responseIntent) {
+  /**
+   * Util Method - helps to extract Access code from response intent
+   *
+   * @return access code
+   */
+  public static String getResponceUrl(final Intent responseIntent) {
     return responseIntent.getStringExtra(RESPONSE_URL_TAG);
   }
 
   private ProgressDialog mProgressDialog;
 
-  public final static int REQUEST_CODE = 0;
+  public static final String ACTION_FEEDLY_AUTH = "org.github.bademux.feedly.api.util.FEEDLY_AUTH";
 
-  public final static String STATE_TAG = "STATE";
+  public final static int REQUEST_CODE = 0;
 
   public final static String RESPONSE_URL_TAG = "ACCESS_CODE";
 
-  public final static String REQUEST_URL_TAG = "REQUEST_URL";
+  public static final String REDIRECT_URI_LOCAL = "http://localhost";
+
+  public static final String REDIRECT_URN = "urn:ietf:wg:oauth:2.0:oob";
 }

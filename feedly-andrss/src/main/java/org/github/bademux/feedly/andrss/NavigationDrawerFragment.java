@@ -23,8 +23,6 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -37,27 +35,20 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.CursorTreeAdapter;
 import android.widget.ExpandableListView;
-import android.widget.SimpleCursorTreeAdapter;
 
-import org.github.bademux.feedly.api.util.db.QueryHandler;
+import org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter;
 
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
 import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
 import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
-
-import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
-import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
-import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class NavigationDrawerFragment extends Fragment implements
-                                                       QueryHandler.AsyncQueryListener {
+public class NavigationDrawerFragment extends Fragment {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -76,9 +67,7 @@ public class NavigationDrawerFragment extends Fragment implements
     // Select either the default item (0) or the last selected item.
     selectItem(mCurrentSelectedPosition);
 
-    mAdapter = createAdapter();
-
-    mQueryHandler = new QueryHandler(getActivity().getContentResolver(), this);
+    mAdapter = new FeedlyCursorTreeAdapter(getActivity());
   }
 
   @Override
@@ -112,9 +101,7 @@ public class NavigationDrawerFragment extends Fragment implements
     });
     mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
     mDrawerListView.setAdapter(mAdapter);
-
-    mQueryHandler.startQuery(TOKEN_GROUP, null, Categories.CONTENT_URI,
-                             new String[]{Categories.LABEL, Categories.ID}, null, null, null);
+    mAdapter.startQueryGroup();
 
     ActionBarPullToRefresh.from(getActivity())
         .theseChildrenArePullable(mDrawerListView, mDrawerListView.getEmptyView())
@@ -129,27 +116,6 @@ public class NavigationDrawerFragment extends Fragment implements
 
   public boolean isDrawerOpen() {
     return mDrawerLayout != null && mDrawerLayout.isDrawerOpen(mFragmentContainerView);
-  }
-
-  /** ...grandeur and poverty of Java... */
-  private CursorTreeAdapter createAdapter() {
-    // The constructor does not take a Cursor - avoiding querying the db on the main thread.
-    return new SimpleCursorTreeAdapter(getActivity(), null,
-                                       android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{Categories.LABEL, Categories.ID},
-                                       new int[]{android.R.id.text1},
-                                       android.R.layout.simple_expandable_list_item_1,
-                                       new String[]{Feeds.TITLE},
-                                       new int[]{android.R.id.text1}) {
-      @Override
-      protected Cursor getChildrenCursor(final Cursor groupCursor) {
-        String id = groupCursor.getString(groupCursor.getColumnIndex(Categories.ID));
-        Uri.Builder builder = FeedsByCategory.CONTENT_URI.buildUpon().appendPath(id);
-        mQueryHandler.startQuery(TOKEN_CHILD, groupCursor.getPosition(), builder.build(),
-                                 new String[]{Feeds.TITLE}, null, null, null);
-        return null;
-      }
-    };
   }
 
   /**
@@ -280,18 +246,6 @@ public class NavigationDrawerFragment extends Fragment implements
   }
 
   @Override
-  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
-    switch (token) {
-      case TOKEN_GROUP:
-        mAdapter.setGroupCursor(cursor);
-        break;
-      case TOKEN_CHILD:
-        mAdapter.setChildrenCursor((Integer) cookie, cursor);
-        break;
-    }
-  }
-
-  @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     if (mDrawerToggle.onOptionsItemSelected(item)) {
       return true;
@@ -325,11 +279,7 @@ public class NavigationDrawerFragment extends Fragment implements
 
   public NavigationDrawerFragment() {}
 
-  public static final int TOKEN_GROUP = 0, TOKEN_CHILD = 1;
-
-  /**
-   * Remember the position of the selected item.
-   */
+  /** Remember the position of the selected item. */
   private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
 
   /**
@@ -338,14 +288,10 @@ public class NavigationDrawerFragment extends Fragment implements
    */
   private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
 
-  /**
-   * A pointer to the current callbacks instance (the Activity).
-   */
+  /** A pointer to the current callbacks instance (the Activity). */
   private OnFragmentInteractionListener mListener;
 
-  /**
-   * Helper component that ties the action bar to the navigation drawer.
-   */
+  /** Helper component that ties the action bar to the navigation drawer. */
   private ActionBarDrawerToggle mDrawerToggle;
 
   private DrawerLayout mDrawerLayout;
@@ -356,18 +302,13 @@ public class NavigationDrawerFragment extends Fragment implements
   private int mCurrentSelectedPosition = 0;
   private boolean mFromSavedInstanceState, mUserLearnedDrawer;
 
-  private CursorTreeAdapter mAdapter;
-  private QueryHandler mQueryHandler;
+  private FeedlyCursorTreeAdapter mAdapter;
 
 
-  /**
-   * Callbacks interface that all activities using this fragment must implement.
-   */
+  /** Callbacks interface that all activities using this fragment must implement. */
   public static interface OnFragmentInteractionListener {
 
-    /**
-     * Called when an item in the navigation drawer is selected.
-     */
+    /** Called when an item in the navigation drawer is selected. */
     void onNavigationDrawerItemSelected(int position);
 
     boolean isAuthenticated();

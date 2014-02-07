@@ -141,7 +141,7 @@ public final class FeedlyDbUtils {
   }
 
   public static ContentValues convert(final Subscription subscription) {
-    ContentValues values = convert(subscription);
+    ContentValues values = convert((Feed) subscription);
     values.put(Feeds.SORTID, subscription.getSortid());
     values.put(Feeds.UPDATED, subscription.getUpdated());
     return values;

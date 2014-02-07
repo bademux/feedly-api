@@ -52,29 +52,30 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter {
     super(context, android.R.layout.simple_list_item_1, null,
           from, new int[]{android.R.id.text1}, SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
 
-    mQueryHandler = createAsyncQueryHandler(context.getContentResolver());
+    mQueryHandler = new FeedlyAsyncQueryHandler(context.getContentResolver());
   }
 
   public void startQuery() {
     mQueryHandler.startQuery(TOKEN, null, Entries.CONTENT_URI, from, null, null, null);
   }
 
-  private AsyncQueryHandler createAsyncQueryHandler(ContentResolver contentResolver) {
-    return new AsyncQueryHandler(contentResolver) {
-      @Override
-      protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-        if (token == TOKEN) {
-          changeCursor(cursor);
-        } else if (cursor != null) {
-          cursor.close();
-        }
-      }
-    };
-  }
 
   private final AsyncQueryHandler mQueryHandler;
 
   private static final int TOKEN = 0;
 
   private static final String[] from = new String[]{Entries.TITLE};
+
+  private class FeedlyAsyncQueryHandler extends AsyncQueryHandler {
+    @Override
+    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+      if (token == TOKEN) {
+        changeCursor(cursor);
+      } else if (cursor != null) {
+        cursor.close();
+      }
+    }
+
+    public FeedlyAsyncQueryHandler(final ContentResolver cr) {  super(cr); }
+  }
 }

@@ -37,7 +37,7 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
           android.R.layout.simple_expandable_list_item_1, group, new int[]{android.R.id.text1},
           android.R.layout.simple_expandable_list_item_1, child, new int[]{android.R.id.text1});
 
-    mQueryHandler = createAsyncQueryHandler(context.getContentResolver());
+    mQueryHandler = new FeedlyTreeAsyncQueryHandler(context.getContentResolver());
   }
 
   public void startQueryGroup() {
@@ -53,23 +53,6 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
     return null;
   }
 
-
-  private AsyncQueryHandler createAsyncQueryHandler(ContentResolver contentResolver) {
-    return new AsyncQueryHandler(contentResolver) {
-      @Override
-      protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
-        switch (token) {
-          case TOKEN_GROUP: setGroupCursor(cursor); break;
-          case TOKEN_CHILD: setChildrenCursor((Integer) cookie, cursor); break;
-          default:
-            if (cursor != null) {
-              cursor.close();
-            }
-        }
-      }
-    };
-  }
-
   private final AsyncQueryHandler mQueryHandler;
 
   private static final String[] group = new String[]{Categories.LABEL, Categories.ID};
@@ -77,4 +60,20 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
   private static final String[] child = new String[]{Feeds.TITLE};
 
   private static final int TOKEN_GROUP = 0, TOKEN_CHILD = 1;
+
+  private class FeedlyTreeAsyncQueryHandler extends AsyncQueryHandler {
+    @Override
+    protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+      switch (token) {
+        case TOKEN_GROUP: setGroupCursor(cursor); break;
+        case TOKEN_CHILD: setChildrenCursor((Integer) cookie, cursor); break;
+        default:
+          if (cursor != null) {
+            cursor.close();
+          }
+      }
+    }
+
+    public FeedlyTreeAsyncQueryHandler(final ContentResolver cr) {  super(cr); }
+  }
 }

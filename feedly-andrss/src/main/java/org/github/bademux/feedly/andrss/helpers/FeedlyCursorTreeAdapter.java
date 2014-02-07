@@ -59,12 +59,8 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
       @Override
       protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
         switch (token) {
-          case TOKEN_GROUP:
-            setGroupCursor(cursor);
-            break;
-          case TOKEN_CHILD:
-            setChildrenCursor((Integer) cookie, cursor);
-            break;
+          case TOKEN_GROUP: setGroupCursor(cursor); break;
+          case TOKEN_CHILD: setChildrenCursor((Integer) cookie, cursor); break;
           default:
             if (cursor != null) {
               cursor.close();

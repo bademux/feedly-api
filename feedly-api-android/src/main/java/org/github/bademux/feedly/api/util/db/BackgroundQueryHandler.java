@@ -48,7 +48,8 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
 
   /**
    * Assign the given {@link AsyncQueryListener} to receive query events from asynchronous calls.
-   * Will replace any existing listener.
+   * @param listener
+   * @return token that can be used in {@link AsyncQueryListener}#start* operations
    */
   public synchronized int addQueryListener(final AsyncQueryListener listener) {
     int token = mListeners.size() + 1;

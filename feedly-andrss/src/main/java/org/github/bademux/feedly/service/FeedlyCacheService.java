@@ -62,8 +62,8 @@ public class FeedlyCacheService extends IntentService {
     Log.i(TAG, "onStartCommand " + intent.getAction());
     if (ServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
       try {
-        fetchEntries();
         fetchSubscriptions();
+        fetchEntries();
       } catch (Exception e) {
         Log.e(TAG, "error while pooling", e);
       }

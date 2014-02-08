@@ -76,10 +76,9 @@ public final class FeedlyDbUtils {
       Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
       addIfNew(operations, miscOps, newInsert(Feeds.CONTENT_URI).withValues(convert(feed)),
                feed.getId());
+      processCategories(operations, miscOps, feed, entry.getCategories());
 
       operations.add(newInsert(Entries.CONTENT_URI).withValues(convert(entry)).build());
-
-      processCategories(operations, miscOps, feed, entry.getCategories());
       processTags(operations, miscOps, entry, entry.getTags());
     }
     return operations;
@@ -89,9 +88,9 @@ public final class FeedlyDbUtils {
                                final Map<String, ContentProviderOperation> miscOps,
                                final Builder builder, final String id) {
     if (!miscOps.containsKey(id)) {
-      ContentProviderOperation op = builder.build();
-      miscOps.put(id, op);
+      final ContentProviderOperation op = builder.build();
       operations.add(op);
+      miscOps.put(id, op);
     }
   }
 
@@ -130,7 +129,7 @@ public final class FeedlyDbUtils {
       if (i == tags.size()) {
         builder.withYieldAllowed(true);
       }
-      operations.add(miscOps.put(entry.getId() + tag.getId(), builder.build()));
+      addIfNew(operations, miscOps, builder, entry.getId() + tag.getId());
     }
   }
 

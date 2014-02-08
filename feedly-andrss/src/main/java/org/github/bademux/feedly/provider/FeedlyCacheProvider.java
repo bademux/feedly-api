@@ -57,6 +57,8 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
     URI_MATCHER.addURI(AUTHORITY, FeedsCategories.TBL_NAME, Code.FEEDS_CATEGORIES);
     URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
+    URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
+    URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
   }
 
   /** {@inheritDoc} */
@@ -109,7 +111,7 @@ public class FeedlyCacheProvider extends ContentProvider {
   /** {@inheritDoc} */
   @Override
   public Uri insert(final Uri uri, final ContentValues values) {
-    Log.i(TAG, "Inserting into database");
+    Log.i(TAG, "Inserting into database: " + uri);
     long rowId = insert(mHelper.getWritableDatabase(), URI_MATCHER.match(uri), values);
     return Uri.withAppendedPath(uri, String.valueOf(rowId));
   }
@@ -197,28 +199,34 @@ public class FeedlyCacheProvider extends ContentProvider {
      * {@inheritDoc}
      */
     @Override
-    public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
+    public void onConfigure(final SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
 
     /** {@inheritDoc} */
     @Override
-    public void onCreate(SQLiteDatabase db) {
+    public void onCreate(final SQLiteDatabase db) {
       Log.i(TAG, "Creating database");
       FeedlyDbUtils.create(db);
     }
 
     /** {@inheritDoc} */
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
       Log.i(TAG, "Upgrading database; wiping app data");
       FeedlyDbUtils.dropAll(db);
       onCreate(db);
     }
 
-    public DatabaseHelper(Context context) { super(context, DB_NAME, null, VERSION); }
+    @Override
+    public void onDowngrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
+      onUpgrade(db, oldVersion, newVersion);
+    }
+
+
+    public DatabaseHelper(final Context context) { super(context, DB_NAME, null, VERSION); }
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 2;
+    private static final int VERSION = 1;
 
     static final String TAG = "DatabaseHelper";
   }

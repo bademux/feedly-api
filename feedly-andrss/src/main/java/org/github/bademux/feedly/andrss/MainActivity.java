@@ -65,7 +65,7 @@ public class MainActivity extends Activity
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
-    mQueryHandler = new BackgroundQueryHandler(this.getContentResolver());
+    mQueryHandler = new BackgroundQueryHandler(getContentResolver());
 
     setContentView(R.layout.activity_main);
 

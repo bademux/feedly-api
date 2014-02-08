@@ -37,6 +37,7 @@ import org.github.bademux.feedly.api.model.Tag;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +54,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 
 public final class FeedlyDbUtils {
 
-  public static Collection<ContentProviderOperation> insertOpsForSubscriptions(
+  public static Collection<ContentProviderOperation> processSubscriptions(
       final Collection<Subscription> subscriptions) {
     //approx. size: subscriptions + categories + mappings
     List<ContentProviderOperation> operations = new ArrayList<>(subscriptions.size() * 2);
@@ -65,7 +66,7 @@ public final class FeedlyDbUtils {
     return operations;
   }
 
-  public static Collection<ContentProviderOperation> insertOpsForEntries(
+  public static Collection<ContentProviderOperation> processForEntries(
       final Collection<Entry> entries) {
     //approx. size: subscriptions + categories + mappings
     List<ContentProviderOperation> operations = new ArrayList<>(entries.size() * 2);
@@ -219,6 +220,68 @@ public final class FeedlyDbUtils {
     values.put(Entries.FINGERPRINT, entry.getFingerprint());
     values.put(Entries.ORIGIN_STREAMID, entry.getOrigin().getStreamId());
     return values;
+  }
+
+  /**
+   *
+   * @param inSubscriptions input
+   * @param subscriptions output
+   * @param categories output
+   * @param mappings output
+   */
+  public static void processSubscriptions(final Collection<Subscription> inSubscriptions ,
+                                          Collection<ContentValues> subscriptions,
+                                          Collection<ContentValues> categories,
+                                          Collection<ContentValues> mappings){
+    if (subscriptions == null) { subscriptions = new HashSet<ContentValues>(subscriptions.size()); }
+    HashMap<String,ContentValues> categoriesTmp = new HashMap<String, ContentValues>();
+    HashMap<String,ContentValues> mappingsTmp = new HashMap<String, ContentValues>();
+
+    Map<String, ContentValues> miscOps = new HashMap<String, ContentValues>();
+    for (Subscription subscription : inSubscriptions) {
+      subscriptions.add(convert(subscription));
+      List<Category> cats = subscription.getCategories();
+      if (cats == null) {
+        continue;
+      }
+      for (Category category : cats) {
+        categoriesTmp.put(category.getId(), convert(category));
+        mappingsTmp.put(subscription.getId() + category.getId(), convert(subscription, category));
+      }
+    }
+    categories = categoriesTmp.values();
+    mappings = mappingsTmp.values();
+  }
+
+  /**
+   *
+   * @param inEntries input
+   * @param entries output
+   * @param tags output
+   * @param mappings output
+   */
+  public static void processEntries(final Collection<Entry> inEntries,
+                                    Collection<ContentValues> entries,
+                                    Collection<ContentValues> tags,
+                                    Collection<ContentValues> mappings){
+    if (entries == null) { entries = new HashSet<ContentValues>(entries.size()); }
+    HashMap<String,ContentValues> tagsTmp = new HashMap<String, ContentValues>();
+    HashMap<String,ContentValues> mappingsTmp = new HashMap<String, ContentValues>();
+
+    Map<String, ContentValues> miscOps = new HashMap<String, ContentValues>();
+    for (Entry entry : inEntries) {
+      entries.add(convert(entry));
+      List<Tag> tgs = entry.getTags();
+      if (tags == null) {
+        continue;
+      }
+      for (Tag tag : tgs) {
+        tagsTmp.put(tag.getId(), convert(tag));
+        mappingsTmp.put(entry.getId() + tag.getId(), convert(entry, tag));
+      }
+    }
+    tags = tagsTmp.values();
+    mappings = mappingsTmp.values();
   }
 
   public static void create(final SQLiteDatabase db) {

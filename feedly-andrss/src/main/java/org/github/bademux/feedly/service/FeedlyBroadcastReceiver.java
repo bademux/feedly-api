@@ -49,7 +49,7 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
 //          interval = interval / 2;
 //        }
 //      }
-      return status.interval;
+      return status.interval * 100;
     }
 
     @Override

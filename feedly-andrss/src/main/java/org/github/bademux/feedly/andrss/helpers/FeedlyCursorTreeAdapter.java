@@ -52,6 +52,8 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
         setChildrenCursor((Integer) cookie, cursor);
       }
     });
+
+    mQueryHandler.contentObserver(Categories.CONTENT_URI, null);
   }
 
   public void startQueryGroup() {

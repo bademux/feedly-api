@@ -41,20 +41,34 @@ package org.github.bademux.feedly.api.util.db;
 
 import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
+import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.util.SparseArray;
+
+import java.lang.ref.WeakReference;
 
 public final class BackgroundQueryHandler extends AsyncQueryHandler {
 
   /**
    * Assign the given {@link AsyncQueryListener} to receive query events from asynchronous calls.
-   * @param listener
+   *
    * @return token that can be used in {@link AsyncQueryListener}#start* operations
    */
   public synchronized int addQueryListener(final AsyncQueryListener listener) {
     int token = mListeners.size() + 1;
     mListeners.put(token, listener);
     return token;
+  }
+
+  public synchronized void contentObserver(final Uri uri, final ContentChangeListener listener) {
+    final ContentResolver contentResolver = mResolver.get();
+    if (contentResolver != null) {
+      contentResolver.registerContentObserver(uri, true, new ContentObserver(null) {
+        @Override
+        public void onChange(final boolean selfChange, Uri uri) { listener.onChange(); }
+      });
+    }
   }
 
   /** {@inheritDoc} */
@@ -68,7 +82,12 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
     }
   }
 
-  public BackgroundQueryHandler(ContentResolver contentResolver) { super(contentResolver); }
+  public BackgroundQueryHandler(ContentResolver contentResolver) {
+    super(contentResolver);
+    mResolver = new WeakReference<>(contentResolver);
+  }
+
+  private final WeakReference<ContentResolver> mResolver;
 
   private final SparseArray<AsyncQueryListener> mListeners = new SparseArray<AsyncQueryListener>(5);
 
@@ -81,5 +100,10 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
      * @param cursor The cursor holding the results from the query.
      */
     void onQueryComplete(final Object cookie, final Cursor cursor);
+  }
+
+  public interface ContentChangeListener {
+
+    void onChange();
   }
 }

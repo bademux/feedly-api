@@ -19,8 +19,12 @@
 package org.github.bademux.feedly.provider;
 
 import android.content.ContentProvider;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.OperationApplicationException;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -29,6 +33,11 @@ import android.net.Uri;
 import android.util.Log;
 
 import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.AUTHORITY;
@@ -180,15 +189,59 @@ public class FeedlyCacheProvider extends ContentProvider {
     }
   }
 
+  /**
+   * With notification
+   * {@inheritDoc}
+   */
+  @Override
+  public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
+      throws OperationApplicationException {
+
+
+    final Set<Uri> uris = new HashSet<>(operations.size());
+    for (ContentProviderOperation operation : operations) {
+      uris.add(operation.getUri());
+    }
+
+    final ContentProviderResult[] results = super.applyBatch(operations);
+
+    for (Uri uri : uris) { notify(uri); }
+    return results;
+  }
+
+  /**
+   * With notification
+   * {@inheritDoc}
+   */
+  @Override
+  public int bulkInsert(Uri uri, ContentValues[] values) {
+    int numValues = super.bulkInsert(uri, values);
+    if (numValues > 0) {
+      notify(uri);
+    }
+    return numValues;
+  }
+
+  protected final void notify(final Uri uri) {
+    final ContentResolver resolver = mResolver.get();
+    if (resolver != null) { resolver.notifyChange(uri, null); }
+  }
+
   /** {@inheritDoc} */
   @Override
   public String getType(final Uri uri) { return null; }
 
   /** {@inheritDoc} */
   @Override
-  public boolean onCreate() { mHelper = new DatabaseHelper(getContext()); return true; }
+  public boolean onCreate() {
+    mHelper = new DatabaseHelper(getContext());
+    mResolver = new WeakReference<>(getContext().getContentResolver());
+    return true;
+  }
 
   private DatabaseHelper mHelper;
+
+  private WeakReference<ContentResolver> mResolver;
 
   private static final String TAG = "FeedlyCacheProvider";
 

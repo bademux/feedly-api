@@ -37,8 +37,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.insertOpsForEntries;
-import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.insertOpsForSubscriptions;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processForEntries;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processSubscriptions;
 
 public class FeedlyCacheService extends IntentService {
 
@@ -60,21 +60,31 @@ public class FeedlyCacheService extends IntentService {
   @Override
   protected void onHandleIntent(final Intent intent) {
     Log.i(TAG, "onStartCommand " + intent.getAction());
-    if (ServiceManager.ACTION_REFRESH.equals(intent.getAction())) {
-      try {
-        fetchSubscriptions();
-        fetchEntries();
-      } catch (Exception e) {
-        Log.e(TAG, "error while pooling", e);
+    final String action = intent.getAction();
+    try {
+      switch (action) {
+        case "subscription": break;
+        case "entries": break;
+        case ServiceManager.ACTION_REFRESH:
+          fetchSubscriptions();
+          fetchEntries();
+        default:
       }
+
+      fetchSubscriptions();
+      fetchEntries();
+    } catch (Exception e) {
+      Log.e(TAG, "error while pooling", e);
     }
   }
+
+
 
   /** Pools data from feedly servers and stores it in database */
   protected void fetchSubscriptions() throws Exception {
     List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
     if (subscriptions != null) {
-      Collection<ContentProviderOperation> operations = insertOpsForSubscriptions(subscriptions);
+      Collection<ContentProviderOperation> operations = processSubscriptions(subscriptions);
       getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
     }
   }
@@ -87,7 +97,7 @@ public class FeedlyCacheService extends IntentService {
 //    }
     EntriesResponse result = request.execute();
     if (result != null) {
-      Collection<ContentProviderOperation> operations = insertOpsForEntries(result.items());
+      Collection<ContentProviderOperation> operations = processForEntries(result.items());
       getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
     }
   }

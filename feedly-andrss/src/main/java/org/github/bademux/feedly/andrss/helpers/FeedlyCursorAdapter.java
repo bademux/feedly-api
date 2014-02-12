@@ -37,8 +37,6 @@
 
 package org.github.bademux.feedly.andrss.helpers;
 
-import android.content.AsyncQueryHandler;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -46,10 +44,9 @@ import android.widget.SimpleCursorAdapter;
 
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
-import java.lang.ref.WeakReference;
-
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
+import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.ContentChangeListener;
 
 public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
 
@@ -58,38 +55,26 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
     super(context, android.R.layout.simple_list_item_1, null,
           from, new int[]{android.R.id.text1}, 0);
 
-    final ContentResolver contentResolver = context.getContentResolver();
-    contentResolver.registerContentObserver(Entries.CONTENT_URI, true, new ContentObserver(null) {
+    mQueryHandler = queryHandler;
+
+    mQueryHandler.initContentObserver(Entries.CONTENT_URI, new ContentChangeListener() {
       @Override
-      public void onChange(final boolean selfChange) { FeedlyCursorAdapter.this.startQuery(); }
+      public void onChange() {
+        FeedlyCursorAdapter.this.notifyDataSetChanged();
+      }
     });
 
-    mResolver = new WeakReference<>(contentResolver);
-    mQueryHandler = queryHandler;
-    token = queryHandler.addQueryListener(this);
+    token = mQueryHandler.addQueryListener(this);
   }
 
   public void startQuery() {
     mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, from, null, null, null);
   }
 
-
-  public void release() {
-    final ContentResolver contentResolver = mResolver.get();
-    if (contentResolver != null) {
-      contentResolver.unregisterContentObserver(mObserver);
-    }
-
-    mObserver = null;
-    mQueryHandler = null;
-  }
-
   @Override
   public void onQueryComplete(final Object cookie, final Cursor cursor) { changeCursor(cursor); }
 
-  private final WeakReference<ContentResolver> mResolver;
-
-  private AsyncQueryHandler mQueryHandler;
+  private BackgroundQueryHandler mQueryHandler;
 
   private int token;
 

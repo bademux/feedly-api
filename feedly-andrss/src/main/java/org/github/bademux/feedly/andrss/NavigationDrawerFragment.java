@@ -253,8 +253,8 @@ public class NavigationDrawerFragment extends Fragment {
     }
 
     switch (item.getItemId()) {
-      case R.id.action_example:
-        mListener.onRefreshMenu();
+      case R.id.action_refresh:
+        mListener.onRefreshButton();
         return true;
       case R.id.action_auth:
         mListener.onLogin();
@@ -319,5 +319,7 @@ public class NavigationDrawerFragment extends Fragment {
     void onLogout();
 
     void onRefreshMenu();
+
+    void onRefreshButton();
   }
 }

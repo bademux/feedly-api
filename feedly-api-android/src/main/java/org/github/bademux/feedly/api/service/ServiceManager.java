@@ -92,11 +92,7 @@ public abstract class ServiceManager {
 
   public boolean isScheduled() { return null != getPendingIntent(); }
 
-  protected Intent createIntent() {
-    Intent intent = new Intent(mContext, mClazz);
-    intent.setAction(ACTION_REFRESH);
-    return intent;
-  }
+  protected Intent createIntent() { return new Intent(ACTION_REFRESH, null, mContext, mClazz); }
 
   protected PendingIntent createPendingIntent() {
     Intent intent = createIntent();

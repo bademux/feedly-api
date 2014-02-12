@@ -19,25 +19,22 @@
 package org.github.bademux.feedly.service;
 
 import android.app.IntentService;
-import android.content.ContentProviderOperation;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
-import org.github.bademux.feedly.api.model.Category;
 import org.github.bademux.feedly.api.model.EntriesResponse;
 import org.github.bademux.feedly.api.model.Subscription;
-import org.github.bademux.feedly.api.provider.FeedlyContract;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processForEntries;
+import static org.github.bademux.feedly.api.model.Category.ALL;
+import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processEntries;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processSubscriptions;
 
 public class FeedlyCacheService extends IntentService {
@@ -45,7 +42,6 @@ public class FeedlyCacheService extends IntentService {
   @Override
   public void onCreate() {
     Log.i(TAG, "Service created");
-
     try {
       mFeedlyUtil = new FeedlyUtil(this, getString(R.string.client_id),
                                    getString(R.string.client_secret));
@@ -60,45 +56,29 @@ public class FeedlyCacheService extends IntentService {
   @Override
   protected void onHandleIntent(final Intent intent) {
     Log.i(TAG, "onStartCommand " + intent.getAction());
+    ContentResolver contentResolver = getContentResolver();
     final String action = intent.getAction();
     try {
       switch (action) {
-        case "subscription": break;
-        case "entries": break;
+        case ACTION_FETCH_SUBSCRIPTION:
+          List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
+          if (subscriptions != null) {
+            processSubscriptions(contentResolver, subscriptions);
+          }
+          break;
+        case ACTION_FETCH_ENTRIES:
+          Feedly service = mFeedlyUtil.service();
+          Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
+          EntriesResponse result = request.execute();
+          if (result != null) {
+            processEntries(contentResolver, result.items());
+          }
+          break;
         case ServiceManager.ACTION_REFRESH:
-          fetchSubscriptions();
-          fetchEntries();
         default:
       }
-
-      fetchSubscriptions();
-      fetchEntries();
     } catch (Exception e) {
       Log.e(TAG, "error while pooling", e);
-    }
-  }
-
-
-
-  /** Pools data from feedly servers and stores it in database */
-  protected void fetchSubscriptions() throws Exception {
-    List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
-    if (subscriptions != null) {
-      Collection<ContentProviderOperation> operations = processSubscriptions(subscriptions);
-      getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
-    }
-  }
-
-  protected void fetchEntries() throws Exception {
-    Feedly service = mFeedlyUtil.service();
-    Feedly.Streams.Contents request = service.streams().contents(service.newCategory(Category.ALL));
-//    if (newerThan != null){
-//      request.setNewerThan(newerThan);
-//    }
-    EntriesResponse result = request.execute();
-    if (result != null) {
-      Collection<ContentProviderOperation> operations = processForEntries(result.items());
-      getContentResolver().applyBatch(FeedlyContract.AUTHORITY, new ArrayList<>(operations));
     }
   }
 
@@ -106,6 +86,11 @@ public class FeedlyCacheService extends IntentService {
   public FeedlyCacheService() { super(TAG); }
 
   private volatile FeedlyUtil mFeedlyUtil;
+
+  public final static String ACTION_FETCH_SUBSCRIPTION =
+      "org.github.bademux.feedly.api.service.Subscription";
+
+  public final static String ACTION_FETCH_ENTRIES = "org.github.bademux.feedly.api.service.Entries";
 
   static final String TAG = "FeedlyCacheService";
 }

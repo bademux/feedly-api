@@ -197,15 +197,15 @@ public class FeedlyCacheProvider extends ContentProvider {
   public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations)
       throws OperationApplicationException {
 
-
     final Set<Uri> uris = new HashSet<>(operations.size());
     for (ContentProviderOperation operation : operations) {
       uris.add(operation.getUri());
     }
 
     final ContentProviderResult[] results = super.applyBatch(operations);
-
-    for (Uri uri : uris) { notify(uri); }
+    if (results != null && results.length > 0) {
+      for (Uri uri : uris) { notify(uri); }
+    }
     return results;
   }
 

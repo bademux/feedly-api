@@ -25,10 +25,10 @@ import android.widget.SimpleCursorTreeAdapter;
 
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
-import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
+import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 
 public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
 
@@ -52,8 +52,6 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter {
         setChildrenCursor((Integer) cookie, cursor);
       }
     });
-
-    mQueryHandler.contentObserver(Categories.CONTENT_URI, null);
   }
 
   public void startQueryGroup() {

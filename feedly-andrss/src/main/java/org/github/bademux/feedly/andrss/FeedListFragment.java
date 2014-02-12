@@ -61,7 +61,7 @@ public class FeedListFragment extends ListFragment {
         .theseChildrenArePullable(getListView(), getListView().getEmptyView())
         .listener(new OnRefreshListener() {
           @Override
-          public void onRefreshStarted(final View view) { mListener.onRefreshEntries(); }
+          public void onRefreshStarted(final View view) { mListener.onRefreshList(); }
         })
         .setup(mPullToRefreshLayout);
   }
@@ -113,6 +113,6 @@ public class FeedListFragment extends ListFragment {
     // TODO: Update argument type and TBL_NAME
     public void onFragmentInteraction(String id);
 
-    public void onRefreshEntries();
+    public void onRefreshList();
   }
 }

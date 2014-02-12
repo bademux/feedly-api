@@ -23,9 +23,11 @@ package org.github.bademux.feedly.api.util.db;
 import com.google.api.client.repackaged.com.google.common.base.Joiner;
 
 import android.content.ContentProviderOperation;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 
 import org.github.bademux.feedly.api.model.Category;
 import org.github.bademux.feedly.api.model.Entry;
@@ -36,10 +38,12 @@ import org.github.bademux.feedly.api.model.Tag;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static android.content.ContentProviderOperation.Builder;
 import static android.content.ContentProviderOperation.newInsert;
@@ -66,7 +70,7 @@ public final class FeedlyDbUtils {
     return operations;
   }
 
-  public static Collection<ContentProviderOperation> processForEntries(
+  public static Collection<ContentProviderOperation> processEntries(
       final Collection<Entry> entries) {
     //approx. size: subscriptions + categories + mappings
     List<ContentProviderOperation> operations = new ArrayList<>(entries.size() * 2);
@@ -222,66 +226,110 @@ public final class FeedlyDbUtils {
     return values;
   }
 
-  /**
-   *
-   * @param inSubscriptions input
-   * @param subscriptions output
-   * @param categories output
-   * @param mappings output
-   */
-  public static void processSubscriptions(final Collection<Subscription> inSubscriptions ,
-                                          Collection<ContentValues> subscriptions,
-                                          Collection<ContentValues> categories,
-                                          Collection<ContentValues> mappings){
-    if (subscriptions == null) { subscriptions = new HashSet<ContentValues>(subscriptions.size()); }
-    HashMap<String,ContentValues> categoriesTmp = new HashMap<String, ContentValues>();
-    HashMap<String,ContentValues> mappingsTmp = new HashMap<String, ContentValues>();
+  private static final Comparator<ContentValues> ENTRIES_TAGS_CMP
+      = new Comparator<ContentValues>() {
+    @Override
+    public int compare(final ContentValues lhs, final ContentValues rhs) {
+      boolean q = lhs.get(EntriesTags.ENTRY_ID).equals(rhs.get(EntriesTags.ENTRY_ID))
+                  && lhs.get(EntriesTags.TAG_ID).equals(rhs.get(EntriesTags.TAG_ID));
+      return q ? 0 : 1;
+    }
+  };
+  private static final Comparator<ContentValues> FEEDS_CATEGORIES_CMP
+      = new Comparator<ContentValues>() {
+    @Override
+    public int compare(final ContentValues lhs, final ContentValues rhs) {
+      boolean q = lhs.get(FeedsCategories.CATEGORY_ID).equals(rhs.get(FeedsCategories.CATEGORY_ID))
+                  && lhs.get(FeedsCategories.FEED_ID).equals(rhs.get(FeedsCategories.FEED_ID));
+      return q ? 0 : 1;
+    }
+  };
+  private static final Comparator<ContentValues> ENTITY_CMP = new Comparator<ContentValues>() {
+    @Override
+    public int compare(final ContentValues lhs, final ContentValues rhs) {
+      return lhs.get("id").equals(rhs.get("id")) ? 0 : 1;
+    }
+  };
 
-    Map<String, ContentValues> miscOps = new HashMap<String, ContentValues>();
+  public static void processEntries(final ContentResolver contentResolver,
+                                    final Collection<Entry> inEntries) {
+
+    Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
+
+    Set<ContentValues> entries = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> tags = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> entriesTags = new TreeSet<ContentValues>(ENTRIES_TAGS_CMP);
+    for (Entry entry : inEntries) {
+      entries.add(convert(entry));
+
+      List<Tag> tgs = entry.getTags();
+      if (tgs != null) {
+        for (Tag tag : tgs) {
+          tags.add(convert(tag));
+          entriesTags.add(convert(entry, tag));
+        }
+      }
+
+      Entry.Origin stream = entry.getOrigin();
+      Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
+      feeds.add(convert(feed));
+
+      List<Category> cats = entry.getCategories();
+      if (cats != null) {
+        for (Category category : cats) {
+          categories.add(convert(category));
+          feedsCategories.add(convert(feed, category));
+        }
+      }
+    }
+
+    bulkInsert(contentResolver, Feeds.CONTENT_URI,
+               feeds.toArray(new ContentValues[feeds.size()]));
+    bulkInsert(contentResolver, Categories.CONTENT_URI,
+               categories.toArray(new ContentValues[categories.size()]));
+    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI,
+               feedsCategories.toArray(new ContentValues[feedsCategories.size()]));
+
+    bulkInsert(contentResolver, Entries.CONTENT_URI,
+               entries.toArray(new ContentValues[entries.size()]));
+    bulkInsert(contentResolver, Tags.CONTENT_URI,
+               tags.toArray(new ContentValues[tags.size()]));
+    bulkInsert(contentResolver, EntriesTags.CONTENT_URI,
+               entriesTags.toArray(new ContentValues[entriesTags.size()]));
+  }
+
+  public static void processSubscriptions(final ContentResolver contentResolver,
+                                          final Collection<Subscription> inSubscriptions){
+    Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
+    Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
+
     for (Subscription subscription : inSubscriptions) {
-      subscriptions.add(convert(subscription));
+      feeds.add(convert(subscription));
       List<Category> cats = subscription.getCategories();
       if (cats == null) {
         continue;
       }
       for (Category category : cats) {
-        categoriesTmp.put(category.getId(), convert(category));
-        mappingsTmp.put(subscription.getId() + category.getId(), convert(subscription, category));
+        categories.add(convert(category));
+        feedsCategories.add(convert(subscription, category));
       }
     }
-    categories = categoriesTmp.values();
-    mappings = mappingsTmp.values();
+
+    bulkInsert(contentResolver, Feeds.CONTENT_URI,
+               feeds.toArray(new ContentValues[feeds.size()]));
+    bulkInsert(contentResolver, Categories.CONTENT_URI,
+               categories.toArray(new ContentValues[categories.size()]));
+    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI,
+               feedsCategories.toArray(new ContentValues[feedsCategories.size()]));
+
   }
 
-  /**
-   *
-   * @param inEntries input
-   * @param entries output
-   * @param tags output
-   * @param mappings output
-   */
-  public static void processEntries(final Collection<Entry> inEntries,
-                                    Collection<ContentValues> entries,
-                                    Collection<ContentValues> tags,
-                                    Collection<ContentValues> mappings){
-    if (entries == null) { entries = new HashSet<ContentValues>(entries.size()); }
-    HashMap<String,ContentValues> tagsTmp = new HashMap<String, ContentValues>();
-    HashMap<String,ContentValues> mappingsTmp = new HashMap<String, ContentValues>();
-
-    Map<String, ContentValues> miscOps = new HashMap<String, ContentValues>();
-    for (Entry entry : inEntries) {
-      entries.add(convert(entry));
-      List<Tag> tgs = entry.getTags();
-      if (tags == null) {
-        continue;
-      }
-      for (Tag tag : tgs) {
-        tagsTmp.put(tag.getId(), convert(tag));
-        mappingsTmp.put(entry.getId() + tag.getId(), convert(entry, tag));
-      }
-    }
-    tags = tagsTmp.values();
-    mappings = mappingsTmp.values();
+  protected static void bulkInsert(final ContentResolver contentResolver, final Uri uri,
+                                   final ContentValues[] values) {
+    if (values != null) { contentResolver.bulkInsert(uri, values); }
   }
 
   public static void create(final SQLiteDatabase db) {

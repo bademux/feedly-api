@@ -44,9 +44,12 @@ import android.content.ContentResolver;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.SparseArray;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class BackgroundQueryHandler extends AsyncQueryHandler {
 
@@ -56,25 +59,28 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
    * @return token that can be used in {@link AsyncQueryListener}#start* operations
    */
   public synchronized int addQueryListener(final AsyncQueryListener listener) {
-    int token = mListeners.size() + 1;
-    mListeners.put(token, listener);
+    int token = mQueryListeners.size() + 1;
+    mQueryListeners.put(token, listener);
     return token;
   }
 
-  public synchronized void contentObserver(final Uri uri, final ContentChangeListener listener) {
+  public synchronized void initContentObserver(final Uri uri,
+                                               final ContentChangeListener listener) {
     final ContentResolver contentResolver = mResolver.get();
     if (contentResolver != null) {
-      contentResolver.registerContentObserver(uri, true, new ContentObserver(null) {
+      ContentObserver observer = new ContentObserver(mHandler) {
         @Override
-        public void onChange(final boolean selfChange, Uri uri) { listener.onChange(); }
-      });
+        public void onChange(final boolean selfChange) { listener.onChange(); }
+      };
+      contentResolver.registerContentObserver(uri, true, observer);
+      mContentListeners.put(observer, listener);
     }
   }
 
   /** {@inheritDoc} */
   @Override
   protected void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
-    final AsyncQueryListener listener = mListeners.get(token);
+    final AsyncQueryListener listener = mQueryListeners.get(token);
     if (listener != null) {
       listener.onQueryComplete(cookie, cursor);
     } else if (cursor != null) {
@@ -82,14 +88,30 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
     }
   }
 
-  public BackgroundQueryHandler(ContentResolver contentResolver) {
-    super(contentResolver);
-    mResolver = new WeakReference<>(contentResolver);
+  public void unregisterContentObservers() {
+    final ContentResolver contentResolver = mResolver.get();
+    if (contentResolver != null) {
+      for (ContentObserver observer : mContentListeners.keySet()) {
+        contentResolver.unregisterContentObserver(observer);
+      }
+    }
   }
+
+  public BackgroundQueryHandler(ContentResolver contentResolver, Handler handler) {
+    super(contentResolver);
+    mHandler = handler;
+    mResolver = new WeakReference<ContentResolver>(contentResolver);
+  }
+
+  private final Handler mHandler;
 
   private final WeakReference<ContentResolver> mResolver;
 
-  private final SparseArray<AsyncQueryListener> mListeners = new SparseArray<AsyncQueryListener>(5);
+  private final Map<ContentObserver, ContentChangeListener> mContentListeners =
+      new HashMap<ContentObserver, ContentChangeListener>(5);
+
+  private final SparseArray<AsyncQueryListener> mQueryListeners =
+      new SparseArray<AsyncQueryListener>(5);
 
   public interface AsyncQueryListener {
 

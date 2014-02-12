@@ -26,6 +26,7 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
@@ -33,13 +34,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 import org.github.bademux.feedly.andrss.helpers.ProcessDialogAsyncTask;
 import org.github.bademux.feedly.api.model.Profile;
 import org.github.bademux.feedly.api.oauth2.FeedlyCredential;
-import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
 import org.github.bademux.feedly.api.util.FeedlyWebAuthActivity;
+import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 import org.github.bademux.feedly.service.FeedlyBroadcastReceiver;
 import org.github.bademux.feedly.service.FeedlyCacheService;
 
@@ -65,7 +65,7 @@ public class MainActivity extends Activity
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
-    mQueryHandler = new BackgroundQueryHandler(getContentResolver());
+    mQueryHandler = new BackgroundQueryHandler(getContentResolver(), new Handler());
 
     setContentView(R.layout.activity_main);
 
@@ -78,6 +78,13 @@ public class MainActivity extends Activity
       sendBroadcast(new Intent(ACTION_INIT, null, this, FeedlyBroadcastReceiver.class));
     }
   }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    mQueryHandler.unregisterContentObservers();
+  }
+
 
   private void initNavigationDrawer() {
     mTitle = getTitle();
@@ -145,23 +152,27 @@ public class MainActivity extends Activity
   }
 
   @Override
+  public void onRefreshList() {
+    if (!mFeedlyUtil.isAuthenticated()) {
+      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    startService(new Intent(FeedlyCacheService.ACTION_FETCH_ENTRIES,
+                            null, this, FeedlyCacheService.class));
+  }
+
+  @Override
   public void onRefreshMenu() {
     if (!mFeedlyUtil.isAuthenticated()) {
       Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
       return;
     }
-    startService(new Intent(ServiceManager.ACTION_REFRESH, null, this, FeedlyCacheService.class));
+    startService(new Intent(FeedlyCacheService.ACTION_FETCH_SUBSCRIPTION,
+                            null, this, FeedlyCacheService.class));
   }
-
 
   @Override
-  public void onRefreshEntries() {
-    if (!mFeedlyUtil.isAuthenticated()) {
-      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
-      return;
-    }
-    Toast.makeText(this, "onRefreshEntries", Toast.LENGTH_SHORT).show();
-  }
+  public void onRefreshButton() { onRefreshList();}
 
   // Call Back method  to get the ResponseUrl form other Activity
   @Override

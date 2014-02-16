@@ -49,12 +49,13 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
 //          interval = interval / 2;
 //        }
 //      }
-      return status.interval * 100;
+      return status.interval;
     }
 
     @Override
     public boolean shouldSchedule(final Status status) {
-      return (status.isBatteryOk || status.isPowerConnected) && status.isNetworkAvailable;
+      //return (status.isBatteryOk || status.isPowerConnected) && status.isNetworkAvailable;
+      return false;
     }
   }
 }

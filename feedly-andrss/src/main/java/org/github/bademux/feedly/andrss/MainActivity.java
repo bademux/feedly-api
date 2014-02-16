@@ -26,7 +26,6 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
@@ -65,7 +64,7 @@ public class MainActivity extends Activity
       Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
     }
 
-    mQueryHandler = new BackgroundQueryHandler(getContentResolver(), new Handler());
+    mQueryHandler = new BackgroundQueryHandler(getContentResolver());
 
     setContentView(R.layout.activity_main);
 
@@ -78,13 +77,6 @@ public class MainActivity extends Activity
       sendBroadcast(new Intent(ACTION_INIT, null, this, FeedlyBroadcastReceiver.class));
     }
   }
-
-  @Override
-  protected void onPause() {
-    super.onPause();
-    mQueryHandler.unregisterContentObservers();
-  }
-
 
   private void initNavigationDrawer() {
     mTitle = getTitle();

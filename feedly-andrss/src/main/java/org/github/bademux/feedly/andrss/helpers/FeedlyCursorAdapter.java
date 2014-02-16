@@ -38,7 +38,6 @@
 package org.github.bademux.feedly.andrss.helpers;
 
 import android.content.Context;
-import android.database.ContentObserver;
 import android.database.Cursor;
 import android.widget.SimpleCursorAdapter;
 
@@ -57,10 +56,10 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
 
     mQueryHandler = queryHandler;
 
-    mQueryHandler.initContentObserver(Entries.CONTENT_URI, new ContentChangeListener() {
+    mQueryHandler.addContentChangeListener(Entries.CONTENT_URI, new ContentChangeListener() {
       @Override
       public void onChange() {
-        FeedlyCursorAdapter.this.notifyDataSetChanged();
+        startQuery();
       }
     });
 
@@ -77,8 +76,6 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
   private BackgroundQueryHandler mQueryHandler;
 
   private int token;
-
-  private ContentObserver mObserver;
 
   private static final String[] from = new String[]{Entries.TITLE};
 }

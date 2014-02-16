@@ -45,10 +45,10 @@ import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
-import android.util.SparseArray;
 
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class BackgroundQueryHandler extends AsyncQueryHandler {
@@ -59,22 +59,10 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
    * @return token that can be used in {@link AsyncQueryListener}#start* operations
    */
   public synchronized int addQueryListener(final AsyncQueryListener listener) {
-    int token = mQueryListeners.size() + 1;
-    mQueryListeners.put(token, listener);
-    return token;
-  }
-
-  public synchronized void initContentObserver(final Uri uri,
-                                               final ContentChangeListener listener) {
-    final ContentResolver contentResolver = mResolver.get();
-    if (contentResolver != null) {
-      ContentObserver observer = new ContentObserver(mHandler) {
-        @Override
-        public void onChange(final boolean selfChange) { listener.onChange(); }
-      };
-      contentResolver.registerContentObserver(uri, true, observer);
-      mContentListeners.put(observer, listener);
+    if(listener != null){
+    mQueryListeners.add(listener);
     }
+    return mQueryListeners.size() - 1;
   }
 
   /** {@inheritDoc} */
@@ -88,30 +76,59 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
     }
   }
 
-  public void unregisterContentObservers() {
-    final ContentResolver contentResolver = mResolver.get();
-    if (contentResolver != null) {
-      for (ContentObserver observer : mContentListeners.keySet()) {
-        contentResolver.unregisterContentObserver(observer);
-      }
+  public synchronized void addContentChangeListener(final Uri uri,
+                                                    final ContentChangeListener listener) {
+    if (uri == null || listener == null) {
+      return;
+    }
+
+    ContentObserver observer = new ContentObserver(mHandler) {
+      @Override
+      public void onChange(final boolean selfChange) { listener.onChange(); }
+    };
+
+    mResolver.registerContentObserver(uri, true, observer);
+    //add new ContentObserver and release any previously associated with uri
+    ContentObserver oldContentObserver = mContentListeners.put(uri, observer);
+    if (oldContentObserver != null) {
+      mResolver.unregisterContentObserver(oldContentObserver);
     }
   }
 
+  public synchronized void unregisterContentObserver(final Uri uri) {
+    if (uri != null) {
+      mResolver.unregisterContentObserver(mContentListeners.get(uri));
+    }
+  }
+
+  public synchronized void unregisterAllContentObservers() {
+    for (ContentObserver observer : mContentListeners.values()) {
+      mResolver.unregisterContentObserver(observer);
+    }
+  }
+
+  /**
+   * @param handler - create new handler inUI thread to use it with
+   *                android.widget.BaseAdapter#notifyDataSetChanged(). Can be null
+   */
   public BackgroundQueryHandler(ContentResolver contentResolver, Handler handler) {
     super(contentResolver);
     mHandler = handler;
-    mResolver = new WeakReference<ContentResolver>(contentResolver);
+    mResolver = contentResolver;
   }
+
+  public BackgroundQueryHandler(ContentResolver contentResolver) {
+    this(contentResolver, null);
+  }
+
 
   private final Handler mHandler;
 
-  private final WeakReference<ContentResolver> mResolver;
+  private final ContentResolver mResolver;
 
-  private final Map<ContentObserver, ContentChangeListener> mContentListeners =
-      new HashMap<ContentObserver, ContentChangeListener>(5);
+  private final Map<Uri, ContentObserver> mContentListeners = new HashMap<Uri, ContentObserver>(3);
 
-  private final SparseArray<AsyncQueryListener> mQueryListeners =
-      new SparseArray<AsyncQueryListener>(5);
+  private final List<AsyncQueryListener> mQueryListeners = new ArrayList<AsyncQueryListener>(3);
 
   public interface AsyncQueryListener {
 

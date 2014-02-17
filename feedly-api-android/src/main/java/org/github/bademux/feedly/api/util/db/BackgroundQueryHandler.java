@@ -70,7 +70,7 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
   protected void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
     final AsyncQueryListener listener = mQueryListeners.get(token);
     if (listener != null) {
-      listener.onQueryComplete(cookie, cursor);
+      listener.onQueryComplete(token, cookie, cursor);
     } else if (cursor != null) {
       cursor.close();
     }
@@ -135,10 +135,11 @@ public final class BackgroundQueryHandler extends AsyncQueryHandler {
     /**
      * Called when an asynchronous query is completed.
      *
+     * @param token
      * @param cookie the cookie object passed in from {@link #startQuery}.
      * @param cursor The cursor holding the results from the query.
      */
-    void onQueryComplete(final Object cookie, final Cursor cursor);
+    void onQueryComplete(final int token, final Object cookie, final Cursor cursor);
   }
 
   public interface ContentChangeListener {

@@ -85,7 +85,7 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   }
 
   @Override
-  public void onQueryComplete(final Object cookie, final Cursor cursor) { changeCursor(cursor); }
+  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) { changeCursor(cursor); }
 
   private BackgroundQueryHandler mQueryHandler;
 

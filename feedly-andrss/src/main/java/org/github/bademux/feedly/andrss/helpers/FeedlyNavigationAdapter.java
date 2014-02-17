@@ -50,10 +50,10 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   }
 
   @Override
-  public void onQueryComplete(final Object cookie, final Cursor cursor) {
-    if (cookie == null) {
+  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
+    if (token == tokenGroup) {
       setGroupCursor(cursor);
-    } else {
+    } else if (token == tokenChild) {
       setChildrenCursor((Integer) cookie, cursor);
     }
   }

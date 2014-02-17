@@ -31,7 +31,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCateg
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.ContentChangeListener;
 
-public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter implements AsyncQueryListener {
+public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements AsyncQueryListener {
 
   public void startQueryGroup() {
     mQueryHandler.startQuery(tokenGroup, null, Categories.CONTENT_URI, GROUP, null, null, null);
@@ -71,7 +71,7 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter implements 
     return cursor.getString(cursor.getColumnIndex(Feeds.ID));
   }
 
-  public FeedlyCursorTreeAdapter(Context context, final BackgroundQueryHandler queryHandler) {
+  public FeedlyNavigationAdapter(Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, null,
           android.R.layout.simple_expandable_list_item_1, GROUP, new int[]{android.R.id.text1},

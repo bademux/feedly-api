@@ -76,7 +76,7 @@ public class FeedlyCacheProvider extends ContentProvider {
   @Override
   public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                       String sortOrder) {
-    Log.i(TAG, "Querying database");
+    Log.i(TAG, "Querying database: " + uri);
 
     final SQLiteDatabase db = mHelper.getReadableDatabase();
     assert db != null;
@@ -85,7 +85,7 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.query(Entries.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.ENTRIES:
         return db.query(Entries.TBL_NAME, merge(projection, "rowid as _id"),
-                        null, null, null, null, sortOrder);
+                        selection, selectionArgs, null, null, sortOrder);
       case Code.ENTRIES_BY_TAG:
         return db.query(EntriesByTag.TBL_NAME,
                         merge(projection, "rowid as _id", EntriesByTag.TAG_ID),
@@ -100,7 +100,7 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.FEEDS:
         return db.query(Feeds.TBL_NAME, merge(projection, "rowid as _id"),
-                        null, null, null, null, sortOrder);
+                        selection, selectionArgs, null, null, sortOrder);
       case Code.FEEDS_BY_CATEGORY:
         return db.query(FeedsByCategory.TBL_NAME,
                         merge(projection, "rowid as _id", FeedsByCategory.CATEGORY_ID),
@@ -111,13 +111,13 @@ public class FeedlyCacheProvider extends ContentProvider {
                         null, null, null);
       case Code.CATEGORIES:
         return db.query(Categories.TBL_NAME, merge(projection, "rowid as _id"),
-                        null, null, null, null, sortOrder);
+                        selection, selectionArgs, null, null, sortOrder);
       case Code.TAG:
         return db.query(Tags.TBL_NAME, projection, selection, selectionArgs,
                         null, null, null);
       case Code.TAGS:
         return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
-                        null, null, null, null, sortOrder);
+                        selection, selectionArgs, null, null, sortOrder);
       case Code.AUTHORITY: return null;
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);

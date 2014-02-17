@@ -36,7 +36,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ExpandableListView;
 
-import org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter;
+import org.github.bademux.feedly.andrss.helpers.FeedlyNavigationAdapter;
 
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
 import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
@@ -52,7 +52,7 @@ import static android.widget.ExpandableListView.getPackedPositionForGroup;
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class NavigationDrawerFragment extends Fragment
+public class NavigationFragment extends Fragment
     implements OnRefreshListener, OnGroupClickListener, OnChildClickListener {
 
   @Override
@@ -73,7 +73,7 @@ public class NavigationDrawerFragment extends Fragment
     // Select either the default item (0) or the last selected item.
 //    selectItem(mCurrentSelectedPosition);
 
-    mAdapter = new FeedlyCursorTreeAdapter(activity, activity.getAsynchQueryHandler());
+    mAdapter = new FeedlyNavigationAdapter(activity, activity.getAsynchQueryHandler());
   }
 
   @Override
@@ -97,13 +97,11 @@ public class NavigationDrawerFragment extends Fragment
     mPullToRefreshLayout = (PullToRefreshLayout) inflater.inflate(
         R.layout.fragment_navigation_drawer, container, false);
 
-    mListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.list_menu);
-
+    mListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.navigation_list);
     mListView.setOnGroupClickListener(this);
-
     mListView.setOnChildClickListener(this);
-
     mListView.setAdapter(mAdapter);
+
     mAdapter.startQueryGroup();
 
     //TODO: select on when items are fetched
@@ -273,7 +271,7 @@ public class NavigationDrawerFragment extends Fragment
   public boolean onGroupClick(final ExpandableListView parent, final View v,
                               final int groupPosition, final long id) {
     String groupId = mAdapter.getCategoryId(groupPosition);
-    mListener.onNavigationDrawerGroupSelected(groupId);
+    mListener.onGroupSelected(groupId);
     selectItem(getPackedPositionForGroup(groupPosition));
     return false;
   }
@@ -282,7 +280,7 @@ public class NavigationDrawerFragment extends Fragment
   public boolean onChildClick(final ExpandableListView parent, final View v,
                               final int groupPosition, final int childPosition, final long id) {
     String childId = mAdapter.getFeedId(groupPosition, childPosition);
-    mListener.onNavigationDrawerChildSelected(childId);
+    mListener.onChildSelected(childId);
     selectItem(getPackedPositionForChild(groupPosition, childPosition));
     return false;
   }
@@ -298,7 +296,7 @@ public class NavigationDrawerFragment extends Fragment
     actionBar.setTitle(R.string.app_name);
   }
 
-  public NavigationDrawerFragment() {}
+  public NavigationFragment() {}
 
   /** Remember the position of the selected item. */
   private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
@@ -323,16 +321,16 @@ public class NavigationDrawerFragment extends Fragment
   private int mCurrentSelectedPosition = -1;
   private boolean mFromSavedInstanceState, mUserLearnedDrawer;
 
-  private FeedlyCursorTreeAdapter mAdapter;
+  private FeedlyNavigationAdapter mAdapter;
 
 
   /** Callbacks interface that all activities using this fragment must implement. */
   public static interface OnFragmentInteractionListener {
 
     /** Called when an item in the navigation drawer is selected. */
-    void onNavigationDrawerGroupSelected(String groupUrl);
+    void onGroupSelected(String groupUrl);
 
-    void onNavigationDrawerChildSelected(String childUrl);
+    void onChildSelected(String childUrl);
 
     boolean isAuthenticated();
 

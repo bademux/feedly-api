@@ -49,9 +49,9 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCat
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.ContentChangeListener;
 
-public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
+public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
 
-  public FeedlyCursorAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
+  public FeedlyContentAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, android.R.layout.simple_list_item_1, null,
           FROM, new int[]{android.R.id.text1}, 0);
@@ -74,12 +74,12 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
   }
 
 
-  public void startQueryForGroup(String uri) {
+  public void startQueryOnCategory(String uri) {
     Uri.Builder builder = EntriesByCategory.CONTENT_URI.buildUpon().appendPath(uri);
     mQueryHandler.startQuery(token, null, builder.build(), FROM, null, null, null);
   }
 
-  public void startQueryForChild(String uri) {
+  public void startQueryOnFeed(String uri) {
     mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, FROM,
                              Entries.ORIGIN_STREAMID + "=?", new String[]{uri}, null);
   }

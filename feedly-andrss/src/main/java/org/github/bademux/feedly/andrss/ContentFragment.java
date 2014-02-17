@@ -25,7 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-import org.github.bademux.feedly.andrss.helpers.FeedlyCursorAdapter;
+import org.github.bademux.feedly.andrss.helpers.FeedlyContentAdapter;
 
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
 import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
@@ -35,16 +35,16 @@ import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
  * A fragment representing a list of Items.
  * <p />
  * <p />
- * Activities containing this fragment MUST implement the {@link org.github.bademux.feedly.andrss.FeedListFragment.OnFragmentInteractionListener}
+ * Activities containing this fragment MUST implement the {@link ContentFragment.OnFragmentInteractionListener}
  * interface.
  */
-public class FeedListFragment extends ListFragment implements OnRefreshListener {
+public class ContentFragment extends ListFragment implements OnRefreshListener {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     MainActivity activity = (MainActivity) getActivity();
-    mAdapter = new FeedlyCursorAdapter(activity, activity.getAsynchQueryHandler());
+    mAdapter = new FeedlyContentAdapter(activity, activity.getAsynchQueryHandler());
     setListAdapter(mAdapter);
   }
 
@@ -91,16 +91,16 @@ public class FeedListFragment extends ListFragment implements OnRefreshListener 
   }
 
   @Override
-  public FeedlyCursorAdapter getListAdapter() { return mAdapter;  }
+  public FeedlyContentAdapter getListAdapter() { return mAdapter;  }
 
 
-  public FeedListFragment() {}
+  public ContentFragment() {}
 
   private OnFragmentInteractionListener mListener;
 
   private PullToRefreshLayout mPullToRefreshLayout;
 
-  private FeedlyCursorAdapter mAdapter;
+  private FeedlyContentAdapter mAdapter;
 
   /**
    * This interface must be implemented by activities that contain this

@@ -48,9 +48,9 @@ import static org.github.bademux.feedly.api.service.ServiceManager.ACTION_INIT;
 import static org.github.bademux.feedly.api.util.FeedlyWebAuthActivity.getResponceUrl;
 
 public class MainActivity extends Activity
-    implements NavigationDrawerFragment.OnFragmentInteractionListener,
+    implements NavigationFragment.OnFragmentInteractionListener,
                AuthInfoFragment.OnFragmentInteractionListener,
-               FeedListFragment.OnFragmentInteractionListener {
+               ContentFragment.OnFragmentInteractionListener {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +77,7 @@ public class MainActivity extends Activity
       sendBroadcast(new Intent(ACTION_INIT, null, this, FeedlyBroadcastReceiver.class));
     }
 
-    mListFragment = new FeedListFragment();
+    mListFragment = new ContentFragment();
     commitFragment();
   }
 
@@ -85,24 +85,20 @@ public class MainActivity extends Activity
     mTitle = getTitle();
 
     // Set up the drawer.
-    mNavigationDrawerFragment = (NavigationDrawerFragment)
+    mNavigationFragment = (NavigationFragment)
         getFragmentManager().findFragmentById(R.id.navigation_drawer);
     DrawerLayout drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-    mNavigationDrawerFragment.setUp(R.id.navigation_drawer, drawerLayout);
+    mNavigationFragment.setUp(R.id.navigation_drawer, drawerLayout);
   }
 
   @Override
-  public void onNavigationDrawerGroupSelected(String groupUrl) {
-    if (isAuthenticated()) {
-      mListFragment.getListAdapter().startQueryForGroup(groupUrl);
-    }
+  public void onGroupSelected(String groupUrl) {
+    mListFragment.getListAdapter().startQueryOnCategory(groupUrl);
   }
 
   @Override
-  public void onNavigationDrawerChildSelected(String childUrl) {
-    if (isAuthenticated()) {
-      mListFragment.getListAdapter().startQueryForChild(childUrl);
-    }
+  public void onChildSelected(String childUrl) {
+    mListFragment.getListAdapter().startQueryOnFeed(childUrl);
   }
 
   protected void commitFragment() {
@@ -197,7 +193,7 @@ public class MainActivity extends Activity
         }
 
         @Override
-        protected void onPostExecute() { onNavigationDrawerGroupSelected(null); }
+        protected void onPostExecute() { onGroupSelected(null); }
       }.execute();
       return;
     }
@@ -225,7 +221,7 @@ public class MainActivity extends Activity
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
-    if (!mNavigationDrawerFragment.isDrawerOpen()) {
+    if (!mNavigationFragment.isDrawerOpen()) {
       // Only show items in the action bar relevant to this screen
       // if the drawer is not showing. Otherwise, let the drawer
       // decide what to show in the action bar.
@@ -256,9 +252,9 @@ public class MainActivity extends Activity
   public BackgroundQueryHandler getAsynchQueryHandler() { return mQueryHandler; }
 
   /** Fragment managing the behaviors, interactions and presentation of the navigation drawer. */
-  private NavigationDrawerFragment mNavigationDrawerFragment;
+  private NavigationFragment mNavigationFragment;
 
-  private FeedListFragment mListFragment;
+  private ContentFragment mListFragment;
 
   /** Used to store the last screen title. For use in {@link #restoreActionBar()}. */
   private CharSequence mTitle;

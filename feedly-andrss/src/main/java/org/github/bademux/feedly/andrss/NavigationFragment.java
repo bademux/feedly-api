@@ -95,12 +95,13 @@ public class NavigationFragment extends Fragment
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
     mPullToRefreshLayout = (PullToRefreshLayout) inflater.inflate(
-        R.layout.fragment_navigation_drawer, container, false);
+        R.layout.fragment_navigation, container, false);
 
     mListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.navigation_list);
     mListView.setOnGroupClickListener(this);
     mListView.setOnChildClickListener(this);
     mListView.setAdapter(mAdapter);
+    mListView.setItemsCanFocus(true);
 
     mAdapter.startQueryGroup();
 

@@ -21,8 +21,11 @@ package org.github.bademux.feedly.andrss.helpers;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.SimpleCursorTreeAdapter;
 
+import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
@@ -55,6 +58,13 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     }
   }
 
+  @Override
+  public View getGroupView(int groupPosition, boolean isExpanded,
+                           View convertView, ViewGroup parentView) {
+
+    return super.getGroupView(groupPosition, isExpanded, convertView, parentView);
+  }
+
   public final String getCategoryId(final int groupPosition) {
     return getCategoryId(getGroup(groupPosition));
   }
@@ -74,7 +84,7 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   public FeedlyNavigationAdapter(Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, null,
-          android.R.layout.simple_expandable_list_item_1, GROUP, new int[]{android.R.id.text1},
+          R.layout.fragment_navigation_list_group, GROUP, new int[]{android.R.id.text1},
           android.R.layout.simple_list_item_1, CHILD, new int[]{android.R.id.text1});
 
     mQueryHandler = queryHandler;

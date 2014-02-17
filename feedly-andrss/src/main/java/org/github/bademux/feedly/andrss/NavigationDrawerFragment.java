@@ -23,6 +23,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -34,7 +35,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ExpandableListView;
 
 import org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter;
@@ -43,12 +43,19 @@ import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
 import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
 import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
 
+import static android.widget.ExpandableListView.OnChildClickListener;
+import static android.widget.ExpandableListView.OnGroupClickListener;
+import static android.widget.ExpandableListView.getPackedPositionForChild;
+import static android.widget.ExpandableListView.getPackedPositionForGroup;
+import static org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter.getCategoryId;
+import static org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter.getFeedId;
+
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class NavigationDrawerFragment extends Fragment {
+public class NavigationDrawerFragment extends Fragment implements OnRefreshListener {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -60,15 +67,15 @@ public class NavigationDrawerFragment extends Fragment {
     SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(activity);
     mUserLearnedDrawer = sp.getBoolean(PREF_USER_LEARNED_DRAWER, false);
 
-    if (savedInstanceState != null) {
-      mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION);
+    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_SELECTED_POSITION)) {
+      mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION, -1);
       mFromSavedInstanceState = true;
     }
 
     // Select either the default item (0) or the last selected item.
-    selectItem(mCurrentSelectedPosition);
+//    selectItem(mCurrentSelectedPosition);
 
-    mAdapter = new FeedlyCursorTreeAdapter(getActivity(), activity.getAsynchQueryHandler());
+    mAdapter = new FeedlyCursorTreeAdapter(activity, activity.getAsynchQueryHandler());
   }
 
   @Override
@@ -92,24 +99,36 @@ public class NavigationDrawerFragment extends Fragment {
     mPullToRefreshLayout = (PullToRefreshLayout) inflater.inflate(
         R.layout.fragment_navigation_drawer, container, false);
 
-    mDrawerListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.list_menu);
+    mListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.list_menu);
 
-    mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+    mListView.setOnGroupClickListener(new OnGroupClickListener() {
       @Override
-      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        selectItem(position);
+      public boolean onGroupClick(final ExpandableListView parent, final View v,
+                                  final int groupPosition, final long id) {
+        String groupId = getCategoryId((Cursor) parent.getItemAtPosition(groupPosition));
+        selectItem(getPackedPositionForGroup(groupPosition), groupId);
+        return false;
       }
     });
-    mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
-    mDrawerListView.setAdapter(mAdapter);
+
+    mListView.setOnChildClickListener(new OnChildClickListener() {
+      @Override
+      public boolean onChildClick(final ExpandableListView parent, final View v,
+                                  final int groupPosition,
+                                  final int childPosition, final long id) {
+        String childId = getFeedId((Cursor) parent.getItemAtPosition(childPosition));
+        selectItem(getPackedPositionForChild(groupPosition, childPosition), childId);
+        return false;
+      }
+    });
+
+    mListView.setAdapter(mAdapter);
     mAdapter.startQueryGroup();
 
-    ActionBarPullToRefresh.from(getActivity())
-        .theseChildrenArePullable(mDrawerListView, mDrawerListView.getEmptyView())
-        .listener(new OnRefreshListener() {
-          @Override
-          public void onRefreshStarted(final View view) { mListener.onRefreshMenu(); }
-        })
+    //TODO: select on when items are fetched
+//    mListView.setItemChecked(mCurrentSelectedPosition, true);
+
+    ActionBarPullToRefresh.from(getActivity()).allChildrenArePullable().listener(this)
         .setup(mPullToRefreshLayout);
 
     return mPullToRefreshLayout;
@@ -193,17 +212,13 @@ public class NavigationDrawerFragment extends Fragment {
     mDrawerLayout.setDrawerListener(mDrawerToggle);
   }
 
-  private void selectItem(int position) {
-    mCurrentSelectedPosition = position;
-    if (mDrawerListView != null) {
-      mDrawerListView.setItemChecked(position, true);
-    }
-    if (mDrawerLayout != null) {
-      mDrawerLayout.closeDrawer(mFragmentContainerView);
-    }
-    if (mListener != null) {
-      mListener.onNavigationDrawerItemSelected(position);
-    }
+  private void selectItem(long packedPosition, final String itemId) {
+    mCurrentSelectedPosition = mListView.getFlatListPosition(packedPosition);
+    mListView.setItemChecked(mCurrentSelectedPosition, true);
+    mListener.onNavigationDrawerItemSelected(itemId);
+//    if (mDrawerLayout != null) {
+//      mDrawerLayout.closeDrawer(mFragmentContainerView);
+//    }
   }
 
   @Override
@@ -267,6 +282,13 @@ public class NavigationDrawerFragment extends Fragment {
     return super.onOptionsItemSelected(item);
   }
 
+  @Override
+  public void onRefreshStarted(final View view) {
+    mListener.onRefreshMenu();
+    //TODO: cancel refreshbar
+    mPullToRefreshLayout.setRefreshComplete();
+  }
+
   /**
    * Per the navigation drawer design guidelines, updates the action bar to show the global app
    * 'context', rather than just what's in the current screen.
@@ -296,11 +318,11 @@ public class NavigationDrawerFragment extends Fragment {
   private ActionBarDrawerToggle mDrawerToggle;
 
   private DrawerLayout mDrawerLayout;
-  private ExpandableListView mDrawerListView;
+  private ExpandableListView mListView;
   private View mFragmentContainerView;
   private PullToRefreshLayout mPullToRefreshLayout;
 
-  private int mCurrentSelectedPosition = 0;
+  private int mCurrentSelectedPosition = -1;
   private boolean mFromSavedInstanceState, mUserLearnedDrawer;
 
   private FeedlyCursorTreeAdapter mAdapter;
@@ -310,7 +332,7 @@ public class NavigationDrawerFragment extends Fragment {
   public static interface OnFragmentInteractionListener {
 
     /** Called when an item in the navigation drawer is selected. */
-    void onNavigationDrawerItemSelected(int position);
+    void onNavigationDrawerItemSelected(String itemUrl);
 
     boolean isAuthenticated();
 

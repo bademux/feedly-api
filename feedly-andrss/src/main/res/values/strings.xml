@@ -11,6 +11,7 @@
     <string name="action_deauth">Logout</string>
     <string name="button_login_text">Login</string>
     <string name="msg_loading">Loading... Please wait...</string>
+    <string name="msg_login">Please login</string>
     <string name="msg_signed_with">Signed with %1$s (%2$s)</string>
     <string name="msg_signed_out">Signed out</string>
 </resources>

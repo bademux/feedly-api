@@ -22,7 +22,7 @@ import com.google.api.client.http.HttpResponseException;
 
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -76,6 +76,9 @@ public class MainActivity extends Activity
       Log.d(TAG, "First run");
       sendBroadcast(new Intent(ACTION_INIT, null, this, FeedlyBroadcastReceiver.class));
     }
+
+    mListFragment = new FeedListFragment();
+    commitFragment();
   }
 
   private void initNavigationDrawer() {
@@ -89,18 +92,24 @@ public class MainActivity extends Activity
   }
 
   @Override
-  public void onNavigationDrawerItemSelected(int position) {
-    // update the main content by replacing fragments
-    getFragmentManager().beginTransaction().
-        replace(R.id.container, getContainerFragment(position)).commit();
+  public void onNavigationDrawerItemSelected(String itemUrl) {
+//    if (isAuthenticated()) {
+//      FeedlyCursorAdapter adapter = (FeedlyCursorAdapter)mListFragment.getListAdapter();
+//      adapter.startQuery();
+//    }
   }
 
-  protected Fragment getContainerFragment(int position) {
+  protected void commitFragment() {
+    FragmentTransaction transaction = getFragmentManager().beginTransaction();
     if (isAuthenticated()) {
-      return new FeedListFragment();
+      transaction.replace(R.id.container, mListFragment);
+    } else {
+      transaction.replace(R.id.container,
+                          getFragmentManager().findFragmentById(R.layout.fragment_auth_info)
+      );
     }
 
-    return new AuthInfoFragment();
+    transaction.commit();
   }
 
   @Override
@@ -132,7 +141,7 @@ public class MainActivity extends Activity
       protected void doInBackground() {
         try {
           mFeedlyUtil.logout();
-          onNavigationDrawerItemSelected(0);
+          commitFragment();
           toast(R.string.msg_signed_out);
         } catch (Exception e) {
           toast((e instanceof HttpResponseException) ?
@@ -144,27 +153,21 @@ public class MainActivity extends Activity
   }
 
   @Override
-  public void onRefreshList() {
-    if (!mFeedlyUtil.isAuthenticated()) {
-      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
-      return;
+  public void onRefreshList() { onRefresh(FeedlyCacheService.ACTION_FETCH_ENTRIES); }
+
+  @Override
+  public void onRefreshMenu() { onRefresh(FeedlyCacheService.ACTION_FETCH_SUBSCRIPTION); }
+
+  protected void onRefresh(String action) {
+    if (mFeedlyUtil.isAuthenticated()) {
+      startService(new Intent(action, null, this, FeedlyCacheService.class));
+    } else {
+      Toast.makeText(this, R.string.msg_login, Toast.LENGTH_LONG).show();
     }
-    startService(new Intent(FeedlyCacheService.ACTION_FETCH_ENTRIES,
-                            null, this, FeedlyCacheService.class));
   }
 
   @Override
-  public void onRefreshMenu() {
-    if (!mFeedlyUtil.isAuthenticated()) {
-      Toast.makeText(this, "Please login", Toast.LENGTH_SHORT).show();
-      return;
-    }
-    startService(new Intent(FeedlyCacheService.ACTION_FETCH_SUBSCRIPTION,
-                            null, this, FeedlyCacheService.class));
-  }
-
-  @Override
-  public void onRefreshButton() { onRefreshList();}
+  public void onRefreshButton() { onRefreshList(); }
 
   // Call Back method  to get the ResponseUrl form other Activity
   @Override
@@ -179,6 +182,7 @@ public class MainActivity extends Activity
             Profile profile = mFeedlyUtil.service().profile().get().execute();
             toast(String.format(MainActivity.this.getString(R.string.msg_signed_with),
                                 profile.getEmail(), profile.getFullName()));
+            commitFragment();
           } catch (Exception e) {
             toast((e instanceof HttpResponseException) ?
                   FeedlyUtil.getErrorMessage((HttpResponseException) e) : e.getMessage());
@@ -187,7 +191,7 @@ public class MainActivity extends Activity
         }
 
         @Override
-        protected void onPostExecute() { onNavigationDrawerItemSelected(0); }
+        protected void onPostExecute() { onNavigationDrawerItemSelected(null); }
       }.execute();
       return;
     }
@@ -247,6 +251,8 @@ public class MainActivity extends Activity
 
   /** Fragment managing the behaviors, interactions and presentation of the navigation drawer. */
   private NavigationDrawerFragment mNavigationDrawerFragment;
+
+  private FeedListFragment mListFragment;
 
   /** Used to store the last screen title. For use in {@link #restoreActionBar()}. */
   private CharSequence mTitle;

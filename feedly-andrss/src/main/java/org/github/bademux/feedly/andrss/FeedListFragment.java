@@ -38,7 +38,7 @@ import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
  * Activities containing this fragment MUST implement the {@link org.github.bademux.feedly.andrss.FeedListFragment.OnFragmentInteractionListener}
  * interface.
  */
-public class FeedListFragment extends ListFragment {
+public class FeedListFragment extends ListFragment implements OnRefreshListener {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -59,11 +59,7 @@ public class FeedListFragment extends ListFragment {
 
     ActionBarPullToRefresh.from(getActivity()).insertLayoutInto((ViewGroup) view)
         .theseChildrenArePullable(getListView(), getListView().getEmptyView())
-        .listener(new OnRefreshListener() {
-          @Override
-          public void onRefreshStarted(final View view) { mListener.onRefreshList(); }
-        })
-        .setup(mPullToRefreshLayout);
+        .listener(this).setup(mPullToRefreshLayout);
   }
 
   @Override
@@ -78,7 +74,6 @@ public class FeedListFragment extends ListFragment {
     mListener = null;
   }
 
-
   @Override
   public void onListItemClick(ListView l, View v, int position, long id) {
     super.onListItemClick(l, v, position, id);
@@ -88,6 +83,13 @@ public class FeedListFragment extends ListFragment {
       // fragment is attached to one) that an item has been selected.
       //mListener.onFragmentInteraction(DummyContent.ITEMS.get(position).id);
     }
+  }
+
+  @Override
+  public void onRefreshStarted(final View view) {
+    mListener.onRefreshList();
+    //TODO: cancel refreshbar
+    mPullToRefreshLayout.setRefreshComplete();
   }
 
   public FeedListFragment() {}

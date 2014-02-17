@@ -6,10 +6,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context="org.github.bademux.feedly.andrss.NavigationDrawerFragment">
+
     <ExpandableListView android:id="@+id/list_menu"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:choiceMode="singleChoice"
                         android:background="#ffffff"/>
+
 </uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout>
 

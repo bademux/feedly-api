@@ -66,12 +66,12 @@ public class NavigationFragment extends Fragment
     mUserLearnedDrawer = sp.getBoolean(PREF_USER_LEARNED_DRAWER, false);
 
     if (savedInstanceState != null && savedInstanceState.containsKey(STATE_SELECTED_POSITION)) {
-      mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION, -1);
+//  TODO: choose prev. selected item
+//    int currentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION, -1);
+//    mListView.setItemChecked(currentSelectedPosition, true);
+//    selectItem(mCurrentSelectedPosition);
       mFromSavedInstanceState = true;
     }
-
-    // Select either the default item (0) or the last selected item.
-//    selectItem(mCurrentSelectedPosition);
 
     mAdapter = new FeedlyNavigationAdapter(activity, activity.getAsynchQueryHandler());
   }
@@ -192,8 +192,6 @@ public class NavigationFragment extends Fragment
   }
 
   private void selectItem(long packedPosition) {
-    mCurrentSelectedPosition = mListView.getFlatListPosition(packedPosition);
-    mListView.setItemChecked(mCurrentSelectedPosition, true);
 //    if (mDrawerLayout != null) {
 //      mDrawerLayout.closeDrawer(mFragmentContainerView);
 //    }
@@ -218,7 +216,7 @@ public class NavigationFragment extends Fragment
   @Override
   public void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
-    outState.putInt(STATE_SELECTED_POSITION, mCurrentSelectedPosition);
+    outState.putInt(STATE_SELECTED_POSITION, mListView.getCheckedItemPosition());
   }
 
   @Override
@@ -318,7 +316,6 @@ public class NavigationFragment extends Fragment
   private View mFragmentContainerView;
   private PullToRefreshLayout mPullToRefreshLayout;
 
-  private int mCurrentSelectedPosition = -1;
   private boolean mFromSavedInstanceState, mUserLearnedDrawer;
 
   private FeedlyNavigationAdapter mAdapter;

@@ -23,7 +23,6 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -47,15 +46,14 @@ import static android.widget.ExpandableListView.OnChildClickListener;
 import static android.widget.ExpandableListView.OnGroupClickListener;
 import static android.widget.ExpandableListView.getPackedPositionForChild;
 import static android.widget.ExpandableListView.getPackedPositionForGroup;
-import static org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter.getCategoryId;
-import static org.github.bademux.feedly.andrss.helpers.FeedlyCursorTreeAdapter.getFeedId;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
  * See the <a href="https://developer.android.com/design/patterns/navigation-drawer.html#Interaction">
  * design guidelines</a> for a complete explanation of the behaviors implemented here.
  */
-public class NavigationDrawerFragment extends Fragment implements OnRefreshListener {
+public class NavigationDrawerFragment extends Fragment
+    implements OnRefreshListener, OnGroupClickListener, OnChildClickListener {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -101,26 +99,9 @@ public class NavigationDrawerFragment extends Fragment implements OnRefreshListe
 
     mListView = (ExpandableListView) mPullToRefreshLayout.findViewById(R.id.list_menu);
 
-    mListView.setOnGroupClickListener(new OnGroupClickListener() {
-      @Override
-      public boolean onGroupClick(final ExpandableListView parent, final View v,
-                                  final int groupPosition, final long id) {
-        String groupId = getCategoryId((Cursor) parent.getItemAtPosition(groupPosition));
-        selectItem(getPackedPositionForGroup(groupPosition), groupId);
-        return false;
-      }
-    });
+    mListView.setOnGroupClickListener(this);
 
-    mListView.setOnChildClickListener(new OnChildClickListener() {
-      @Override
-      public boolean onChildClick(final ExpandableListView parent, final View v,
-                                  final int groupPosition,
-                                  final int childPosition, final long id) {
-        String childId = getFeedId((Cursor) parent.getItemAtPosition(childPosition));
-        selectItem(getPackedPositionForChild(groupPosition, childPosition), childId);
-        return false;
-      }
-    });
+    mListView.setOnChildClickListener(this);
 
     mListView.setAdapter(mAdapter);
     mAdapter.startQueryGroup();
@@ -212,10 +193,9 @@ public class NavigationDrawerFragment extends Fragment implements OnRefreshListe
     mDrawerLayout.setDrawerListener(mDrawerToggle);
   }
 
-  private void selectItem(long packedPosition, final String itemId) {
+  private void selectItem(long packedPosition) {
     mCurrentSelectedPosition = mListView.getFlatListPosition(packedPosition);
     mListView.setItemChecked(mCurrentSelectedPosition, true);
-    mListener.onNavigationDrawerItemSelected(itemId);
 //    if (mDrawerLayout != null) {
 //      mDrawerLayout.closeDrawer(mFragmentContainerView);
 //    }
@@ -289,6 +269,24 @@ public class NavigationDrawerFragment extends Fragment implements OnRefreshListe
     mPullToRefreshLayout.setRefreshComplete();
   }
 
+  @Override
+  public boolean onGroupClick(final ExpandableListView parent, final View v,
+                              final int groupPosition, final long id) {
+    String groupId = mAdapter.getCategoryId(groupPosition);
+    mListener.onNavigationDrawerGroupSelected(groupId);
+    selectItem(getPackedPositionForGroup(groupPosition));
+    return false;
+  }
+
+  @Override
+  public boolean onChildClick(final ExpandableListView parent, final View v,
+                              final int groupPosition, final int childPosition, final long id) {
+    String childId = mAdapter.getFeedId(groupPosition, childPosition);
+    mListener.onNavigationDrawerChildSelected(childId);
+    selectItem(getPackedPositionForChild(groupPosition, childPosition));
+    return false;
+  }
+
   /**
    * Per the navigation drawer design guidelines, updates the action bar to show the global app
    * 'context', rather than just what's in the current screen.
@@ -332,7 +330,9 @@ public class NavigationDrawerFragment extends Fragment implements OnRefreshListe
   public static interface OnFragmentInteractionListener {
 
     /** Called when an item in the navigation drawer is selected. */
-    void onNavigationDrawerItemSelected(String itemUrl);
+    void onNavigationDrawerGroupSelected(String groupUrl);
+
+    void onNavigationDrawerChildSelected(String childUrl);
 
     boolean isAuthenticated();
 

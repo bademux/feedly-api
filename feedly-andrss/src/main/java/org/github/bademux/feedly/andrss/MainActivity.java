@@ -92,11 +92,17 @@ public class MainActivity extends Activity
   }
 
   @Override
-  public void onNavigationDrawerItemSelected(String itemUrl) {
-//    if (isAuthenticated()) {
-//      FeedlyCursorAdapter adapter = (FeedlyCursorAdapter)mListFragment.getListAdapter();
-//      adapter.startQuery();
-//    }
+  public void onNavigationDrawerGroupSelected(String groupUrl) {
+    if (isAuthenticated()) {
+      mListFragment.getListAdapter().startQueryForGroup(groupUrl);
+    }
+  }
+
+  @Override
+  public void onNavigationDrawerChildSelected(String childUrl) {
+    if (isAuthenticated()) {
+      mListFragment.getListAdapter().startQueryForChild(childUrl);
+    }
   }
 
   protected void commitFragment() {
@@ -191,7 +197,7 @@ public class MainActivity extends Activity
         }
 
         @Override
-        protected void onPostExecute() { onNavigationDrawerItemSelected(null); }
+        protected void onPostExecute() { onNavigationDrawerGroupSelected(null); }
       }.execute();
       return;
     }

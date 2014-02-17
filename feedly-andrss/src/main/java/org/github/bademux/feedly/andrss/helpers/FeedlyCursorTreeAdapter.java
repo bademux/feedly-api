@@ -55,14 +55,21 @@ public class FeedlyCursorTreeAdapter extends SimpleCursorTreeAdapter implements 
     }
   }
 
-  public static final String getCategoryId(Cursor cursor) {
+  public final String getCategoryId(final int groupPosition) {
+    return getCategoryId(getGroup(groupPosition));
+  }
+
+  public final String getFeedId(final int groupPosition, final int childPosition) {
+    return getFeedId(getChild(groupPosition, childPosition));
+  }
+
+  private static final String getCategoryId(Cursor cursor) {
     return cursor.getString(cursor.getColumnIndex(Categories.ID));
   }
 
-  public static final String getFeedId(Cursor cursor) {
+  private static final String getFeedId(Cursor cursor) {
     return cursor.getString(cursor.getColumnIndex(Feeds.ID));
   }
-
 
   public FeedlyCursorTreeAdapter(Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.

@@ -49,6 +49,7 @@ import static android.content.ContentProviderOperation.Builder;
 import static android.content.ContentProviderOperation.newInsert;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
@@ -399,6 +400,11 @@ public final class FeedlyDbUtils {
                + " ON " + Entries.TBL_NAME + "(" + Entries.ORIGINID + ")");
     db.execSQL("CREATE UNIQUE INDEX uqx_" + Entries.TBL_NAME + "_" + Entries.FINGERPRINT
                + " ON " + Entries.TBL_NAME + "(" + Entries.FINGERPRINT + ")");
+
+    db.execSQL("CREATE VIEW " + EntriesByCategory.TBL_NAME + " AS "
+               + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + FeedsCategories.TBL_NAME
+               + " ON " + Entries.TBL_NAME + "." + Entries.ORIGIN_STREAMID + "="
+               + FeedsCategories.TBL_NAME + "." + FeedsCategories.FEED_ID);
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Tags.TBL_NAME + "("
                + Tags.ID + " TEXT PRIMARY KEY NOT NULL,"

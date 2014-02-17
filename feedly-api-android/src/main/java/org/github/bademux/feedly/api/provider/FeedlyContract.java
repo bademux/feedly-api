@@ -117,6 +117,17 @@ public final class FeedlyContract {
     private EntriesByTag() {}
   }
 
+  /** Class that represents a EntriesByCategory list - sql View */
+  public static final class EntriesByCategory implements EntriesColumns, FeedsCategoriesColumns {
+
+    public static final String TBL_NAME = "entries_by_category";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private EntriesByCategory() {}
+  }
+
   protected interface FeedsCategoriesColumns {
 
     public static final String FEED_ID = "feed_id", CATEGORY_ID = "category_id";

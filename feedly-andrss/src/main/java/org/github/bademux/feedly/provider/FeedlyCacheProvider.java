@@ -43,6 +43,7 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.AUTHORITY;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
@@ -59,6 +60,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, Entries.TBL_NAME + "/#", Code.ENTRY);
     URI_MATCHER.addURI(AUTHORITY, Entries.TBL_NAME, Code.ENTRIES);
     URI_MATCHER.addURI(AUTHORITY, EntriesByTag.TBL_NAME + "/*", Code.ENTRIES_BY_TAG);
+    URI_MATCHER.addURI(AUTHORITY, EntriesByCategory.TBL_NAME + "/*", Code.ENTRIES_BY_CATEGORY);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
     URI_MATCHER.addURI(AUTHORITY, FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
@@ -88,6 +90,11 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.query(EntriesByTag.TBL_NAME,
                         merge(projection, "rowid as _id", EntriesByTag.TAG_ID),
                         EntriesByTag.TAG_ID + "=?",
+                        new String[]{uri.getLastPathSegment()}, null, null, null);
+      case Code.ENTRIES_BY_CATEGORY:
+        return db.query(EntriesByCategory.TBL_NAME,
+                        merge(projection, "rowid as _id", EntriesByCategory.CATEGORY_ID),
+                        EntriesByCategory.CATEGORY_ID + "=?",
                         new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.FEED:
         return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
@@ -279,7 +286,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     static final String TAG = "DatabaseHelper";
   }
@@ -291,6 +298,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int CATEGORIES = 200, CATEGORY = 201;
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;
-    static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502;
+    static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503;
   }
 }

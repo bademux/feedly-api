@@ -39,11 +39,13 @@ package org.github.bademux.feedly.andrss.helpers;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.widget.SimpleCursorAdapter;
 
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.ContentChangeListener;
 
@@ -52,7 +54,7 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
   public FeedlyCursorAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, android.R.layout.simple_list_item_1, null,
-          from, new int[]{android.R.id.text1}, 0);
+          FROM, new int[]{android.R.id.text1}, 0);
 
     mQueryHandler = queryHandler;
 
@@ -66,8 +68,20 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
     token = mQueryHandler.addQueryListener(this);
   }
 
+
   public void startQuery() {
-    mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, from, null, null, null);
+    mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, FROM, null, null, null);
+  }
+
+
+  public void startQueryForGroup(String uri) {
+    Uri.Builder builder = EntriesByCategory.CONTENT_URI.buildUpon().appendPath(uri);
+    mQueryHandler.startQuery(token, null, builder.build(), FROM, null, null, null);
+  }
+
+  public void startQueryForChild(String uri) {
+    mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, FROM,
+                             Entries.ORIGIN_STREAMID + "=?", new String[]{uri}, null);
   }
 
   @Override
@@ -77,5 +91,5 @@ public class FeedlyCursorAdapter extends SimpleCursorAdapter implements AsyncQue
 
   private int token;
 
-  private static final String[] from = new String[]{Entries.TITLE};
+  private static final String[] FROM = new String[]{Entries.TITLE, Entries.ID};
 }

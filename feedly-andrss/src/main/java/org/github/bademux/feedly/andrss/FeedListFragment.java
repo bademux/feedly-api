@@ -52,8 +52,6 @@ public class FeedListFragment extends ListFragment implements OnRefreshListener 
   public void onViewCreated(View view, Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
 
-    mAdapter.startQuery();
-
     // We need to create a PullToRefreshLayout manually
     mPullToRefreshLayout = new PullToRefreshLayout(view.getContext());
 
@@ -91,6 +89,10 @@ public class FeedListFragment extends ListFragment implements OnRefreshListener 
     //TODO: cancel refreshbar
     mPullToRefreshLayout.setRefreshComplete();
   }
+
+  @Override
+  public FeedlyCursorAdapter getListAdapter() { return mAdapter;  }
+
 
   public FeedListFragment() {}
 

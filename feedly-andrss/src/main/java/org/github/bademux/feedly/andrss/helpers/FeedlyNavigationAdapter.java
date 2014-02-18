@@ -30,6 +30,7 @@ import android.widget.TextView;
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
+import static android.view.View.OnClickListener;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
@@ -64,22 +65,28 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   public View newGroupView(Context context, Cursor cursor, boolean isExpanded, ViewGroup parent) {
     final View view = super.newGroupView(context, cursor, isExpanded, parent);
     TextView textView = (TextView) view.findViewById(android.R.id.text2);
-    final ExpandableListView listView = (ExpandableListView) parent;
-    textView.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(final View v) {
-        long pos = listView.getExpandableListPosition(listView.getPositionForView(view));
-        final int positionGroup = ExpandableListView.getPackedPositionGroup(pos);
-
-        if (listView.isGroupExpanded(positionGroup)) {
-          listView.collapseGroup(positionGroup);
-        } else {
-          listView.expandGroup(positionGroup);
-        }
-      }
-    });
+    //set ExpandableListView for later use
+    textView.setTag(parent);
+    textView.setOnClickListener(onClickListener);
     return view;
   }
+
+  private static final OnClickListener onClickListener = new OnClickListener() {
+    @Override
+    public void onClick(final View v) {
+      final ExpandableListView listView = (ExpandableListView) v.getTag();
+      final View listItem = (View) v.getParent();
+      //calculate group position
+      long pos = listView.getExpandableListPosition(listView.getPositionForView(listItem));
+      final int positionGroup = ExpandableListView.getPackedPositionGroup(pos);
+
+      if (listView.isGroupExpanded(positionGroup)) {
+        listView.collapseGroup(positionGroup);
+      } else {
+        listView.expandGroup(positionGroup);
+      }
+    }
+  };
 
   public final String getCategoryId(final int groupPosition) {
     return getCategoryId(getGroup(groupPosition));

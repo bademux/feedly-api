@@ -23,7 +23,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ExpandableListView;
 import android.widget.SimpleCursorTreeAdapter;
+import android.widget.TextView;
 
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
@@ -59,10 +61,23 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   }
 
   @Override
-  public View getGroupView(int groupPosition, boolean isExpanded,
-                           View convertView, ViewGroup parentView) {
-
-    return super.getGroupView(groupPosition, isExpanded, convertView, parentView);
+  public View newGroupView(Context context, Cursor cursor, boolean isExpanded,
+                           final ViewGroup parent) {
+    final View view = super.newGroupView(context, cursor, isExpanded, parent);
+    TextView textView = (TextView) view.findViewById(android.R.id.text2);
+    textView.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(final View v) {
+        ExpandableListView listView = (ExpandableListView) parent;
+        final int position = listView.getPositionForView(view);
+        if (listView.isGroupExpanded(position)) {
+          listView.collapseGroup(position);
+        } else {
+          listView.expandGroup(position);
+        }
+      }
+    });
+    return view;
   }
 
   public final String getCategoryId(final int groupPosition) {
@@ -97,7 +112,6 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     tokenGroup = mQueryHandler.addQueryListener(this);
     tokenChild = mQueryHandler.addQueryListener(this);
   }
-
 
   private final BackgroundQueryHandler mQueryHandler;
 

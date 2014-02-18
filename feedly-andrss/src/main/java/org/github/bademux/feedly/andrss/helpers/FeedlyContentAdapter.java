@@ -42,37 +42,23 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.widget.SimpleCursorAdapter;
 
+import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
-import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.ContentChangeListener;
 
 public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
 
   public FeedlyContentAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
-    super(context, android.R.layout.simple_list_item_1, null,
-          FROM, new int[]{android.R.id.text1}, 0);
+    super(context, R.layout.fragment_content_list_item_simple, null, FROM, TO, 0);
 
     mQueryHandler = queryHandler;
 
-    mQueryHandler.addContentChangeListener(Entries.CONTENT_URI, new ContentChangeListener() {
-      @Override
-      public void onChange() {
-        startQuery();
-      }
-    });
-
     token = mQueryHandler.addQueryListener(this);
   }
-
-
-  public void startQuery() {
-    mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, FROM, null, null, null);
-  }
-
 
   public void startQueryOnCategory(String uri) {
     Uri.Builder builder = EntriesByCategory.CONTENT_URI.buildUpon().appendPath(uri);
@@ -85,11 +71,22 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   }
 
   @Override
-  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) { changeCursor(cursor); }
+  public void onQueryComplete(final int token, final Object cookie,
+                              final Cursor cursor) { changeCursor(cursor); }
 
   private BackgroundQueryHandler mQueryHandler;
 
   private int token;
+  private static final String[] FROM = new String[]{Entries.TITLE,
+                                                    "substr(" + Entries.SUMMARY + ",1,32)",
+                                                    Entries.ENGAGEMENT,
+                                                    Entries.AUTHOR,
+                                                    Entries.CRAWLED,
+                                                    Entries.ID};
 
-  private static final String[] FROM = new String[]{Entries.TITLE, Entries.ID};
+  private static final int[] TO = new int[]{R.id.content_list_title,
+                                            R.id.content_list_preview,
+                                            R.id.content_list_meta_read,
+                                            R.id.content_list_meta_author,
+                                            R.id.content_list_meta_crawled};
 }

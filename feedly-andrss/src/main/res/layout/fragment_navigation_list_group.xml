@@ -19,14 +19,14 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="horizontal"
-              android:layout_width="fill_parent"
-              android:layout_height="fill_parent">
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
 
     <!-- GroupIndicator holder
      TODO: replace with toggle button and remove native groupIndicator with
      <ExpandableListView android:groupIndicator="@null">
      -->
-    <TextView android:id="@android:id/text2"
+    <TextView android:id="@+id/navigation_list_groupindicator"
               android:layout_width="wrap_content"
               android:layout_height="?android:attr/listPreferredItemHeight"
               android:textAppearance="?android:attr/textAppearanceListItem"
@@ -34,7 +34,7 @@
               android:gravity="center_vertical"/>
 
 
-    <TextView android:id="@android:id/text1"
+    <TextView android:id="@+id/navigation_list_title"
               android:layout_width="wrap_content"
               android:layout_height="?android:attr/listPreferredItemHeight"
               android:textAppearance="?android:attr/textAppearanceListItem"

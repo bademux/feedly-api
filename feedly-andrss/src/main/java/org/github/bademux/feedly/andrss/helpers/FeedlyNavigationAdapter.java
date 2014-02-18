@@ -61,19 +61,20 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   }
 
   @Override
-  public View newGroupView(Context context, Cursor cursor, boolean isExpanded,
-                           final ViewGroup parent) {
+  public View newGroupView(Context context, Cursor cursor, boolean isExpanded, ViewGroup parent) {
     final View view = super.newGroupView(context, cursor, isExpanded, parent);
     TextView textView = (TextView) view.findViewById(android.R.id.text2);
+    final ExpandableListView listView = (ExpandableListView) parent;
     textView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(final View v) {
-        ExpandableListView listView = (ExpandableListView) parent;
-        final int position = listView.getPositionForView(view);
-        if (listView.isGroupExpanded(position)) {
-          listView.collapseGroup(position);
+        long pos = listView.getExpandableListPosition(listView.getPositionForView(view));
+        final int positionGroup = ExpandableListView.getPackedPositionGroup(pos);
+
+        if (listView.isGroupExpanded(positionGroup)) {
+          listView.collapseGroup(positionGroup);
         } else {
-          listView.expandGroup(position);
+          listView.expandGroup(positionGroup);
         }
       }
     });

@@ -272,7 +272,7 @@ public class NavigationFragment extends Fragment
     String groupId = mAdapter.getCategoryId(groupPosition);
     mListener.onGroupSelected(groupId);
     selectItem(getPackedPositionForGroup(groupPosition));
-    return parent.isGroupExpanded(groupPosition);
+    return true;
   }
 
   @Override

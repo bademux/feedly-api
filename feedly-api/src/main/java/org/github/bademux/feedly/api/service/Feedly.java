@@ -718,6 +718,7 @@ public class Feedly extends AbstractClient {
 
     /**
      * BUG: https://groups.google.com/forum/?fromgroups=#!topic/feedly-cloud/vpWT17a_Sec
+     * An entry is the atomic unique of content in the feedly cloud. (Authorization is optional)
      *
      * @return Array with single item if entry exists
      */
@@ -1000,7 +1001,8 @@ public class Feedly extends AbstractClient {
               new GenericData().set("type", "entries")
                   .set("action", actionType)
                   .set("entryIds", entryIds),
-              Void.class);
+              Void.class
+        );
         setDisableGZipContent(true);
       }
 
@@ -1047,8 +1049,9 @@ public class Feedly extends AbstractClient {
 
       protected MarkCategoryAsRead(final Collection<String> categoryIds, GenericData entity) {
         super(Feedly.this, "POST", REST_PATH, entity.set("categoryIds", categoryIds)
-            .set("type", "category").set("action", "markAsRead"),
-              Void.class);
+                  .set("type", "category").set("action", "markAsRead"),
+              Void.class
+        );
         setDisableGZipContent(true);
       }
 

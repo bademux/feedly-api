@@ -128,6 +128,17 @@ public final class FeedlyContract {
     private EntriesByCategory() {}
   }
 
+  /** Class that represents a Files */
+  public static final class Files implements FileStats {
+
+    public static final String TBL_NAME = "files";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private Files() {}
+  }
+
   protected interface FeedsCategoriesColumns {
 
     public static final String FEED_ID = "feed_id", CATEGORY_ID = "category_id";
@@ -148,6 +159,7 @@ public final class FeedlyContract {
     public static final String WEBSITE = "website";
     public static final String VELOCITY = "velocity";
     public static final String STATE = "state";
+    public static final String FAVICON = "favicon";
   }
 
   protected interface CategoriesColumns {
@@ -165,27 +177,34 @@ public final class FeedlyContract {
   protected interface EntriesColumns {
 
     public static final String ID = "id";
-    public static final String UNREAD = "unread";
     public static final String TITLE = "title";
-    public static final String KEYWORDS = "keywords";
-    public static final String PUBLISHED = "published";
-    public static final String UPDATED = "updated";
-    public static final String CRAWLED = "crawled";
-    public static final String AUTHOR = "author";
-    public static final String ENGAGEMENT = "engagement";
-    public static final String ENGAGEMENTRATE = "engagementrate";
-    // public static final List<Location> ALTERNATE;
-    // public static final List<Location> CANONICAL;
-    public static final String SUMMARY = "summary";
-    public static final String SUMMARY_DIRECTION = "summary_direction";
     public static final String CONTENT = "content";
     public static final String CONTENT_DIRECTION = "content_direction";
+    public static final String SUMMARY = "summary";
+    public static final String SUMMARY_DIRECTION = "summary_direction";
+    public static final String PUBLISHED = "published";
+    public static final String UPDATED = "updated";
+    public static final String AUTHOR = "author";
+    public static final String CRAWLED = "crawled";
+    public static final String RECRAWLED = "recrawled";
+    public static final String UNREAD = "unread";
+    public static final String KEYWORDS = "keywords";
+    public static final String ENGAGEMENT = "engagement";
+    public static final String ENGAGEMENTRATE = "engagementrate";
     public static final String FINGERPRINT = "fingerprint";
     public static final String ORIGINID = "originid";
     public static final String ORIGIN_STREAMID = "origin_streamid";
+    public static final String ORIGIN_TITLE = "origin_title";
     public static final String VISUAL_URL = "visual_url";
-    public static final String VISUAL_WIDTH = "visual_width";
-    public static final String VISUAL_HEIGHT = "visual_height";
-    public static final String VISUAL_CONTENTTYPE = "visual_contenttype";
+    public static final String ENCLOSURE_MIMES = "ENCLOSURE_MIMES";
+  }
+
+
+  protected interface FileStats {
+
+    public static final String URL = "url";
+    public static final String MIME = "mime";
+    public static final String RETRIES = "retries";
+    public static final String CREATED = "created";
   }
 }

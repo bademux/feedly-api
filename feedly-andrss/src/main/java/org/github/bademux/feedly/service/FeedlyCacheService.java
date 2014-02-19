@@ -74,6 +74,8 @@ public class FeedlyCacheService extends IntentService {
             processEntries(contentResolver, result.items());
           }
           break;
+        case ACTION_DOWNLOAD_DATA:
+          break;
         case ServiceManager.ACTION_REFRESH:
         default:
       }
@@ -91,6 +93,8 @@ public class FeedlyCacheService extends IntentService {
       "org.github.bademux.feedly.api.service.Subscription";
 
   public final static String ACTION_FETCH_ENTRIES = "org.github.bademux.feedly.api.service.Entries";
+  private final static String ACTION_DOWNLOAD_DATA =
+      "org.github.bademux.feedly.api.service.DOWNLOAD";
 
   static final String TAG = "FeedlyCacheService";
 }

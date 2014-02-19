@@ -49,6 +49,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
@@ -70,6 +71,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME, Code.FILES);
   }
 
   /** {@inheritDoc} */
@@ -118,6 +120,9 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.TAGS:
         return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
+      case Code.FILES:
+        return db.query(Files.TBL_NAME, projection, Files.URL + "=?",
+                        new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.AUTHORITY: return null;
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
@@ -146,6 +151,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.replace(Tags.TBL_NAME, null, values);
       case Code.ENTRIES_TAGS:
         return db.insertWithOnConflict(EntriesTags.TBL_NAME, null, values, CONFLICT_IGNORE);
+      case Code.FILES:
+        return db.replace(Files.TBL_NAME, null, values);
       case UriMatcher.NO_MATCH:
         throw new UnsupportedOperationException("Unmatched Uri");
       default:
@@ -286,7 +293,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 2;
+    private static final int VERSION = 1;
 
     static final String TAG = "DatabaseHelper";
   }
@@ -299,5 +306,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;
     static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503;
+    static final int FILES = 600;
   }
 }

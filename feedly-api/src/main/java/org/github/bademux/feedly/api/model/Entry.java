@@ -37,6 +37,10 @@ public final class Entry extends GenericJson implements Markable {
   private String title;
   @Key
   private List<String> keywords;
+
+  /** Optional visual object an image URL for this entry. */
+  @Key
+  private Visual visual;
   @Key
   private Long published;
   @Key
@@ -88,6 +92,8 @@ public final class Entry extends GenericJson implements Markable {
     }
     keywords.add(keyword);
   }
+
+  public Visual getVisual() { return visual; }
 
   public Long getPublished() { return published; }
 
@@ -221,6 +227,32 @@ public final class Entry extends GenericJson implements Markable {
     public Feed toFeed() {
       return new Subscription(streamId.substring(streamId.indexOf('/') + 1), title);
     }
+  }
+
+  /**
+   * If present, “url” will contain the image URL, “width” and “height” its dimension, and
+   * “contentType” its MIME type.
+   */
+  public static class Visual {
+
+    @Key
+    private String url;
+    @Key
+    private int width;
+    @Key
+    private int height;
+    @Key
+    private String contentType;
+
+    public Visual() {}
+
+    public String getUrl() { return url; }
+
+    public int getWidth() { return width; }
+
+    public int getHeight() { return height; }
+
+    public String getContentType() { return contentType; }
   }
 
   @SuppressWarnings("serial")

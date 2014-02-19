@@ -183,5 +183,9 @@ public final class FeedlyContract {
     public static final String FINGERPRINT = "fingerprint";
     public static final String ORIGINID = "originid";
     public static final String ORIGIN_STREAMID = "origin_streamid";
+    public static final String VISUAL_URL = "visual_url";
+    public static final String VISUAL_WIDTH = "visual_width";
+    public static final String VISUAL_HEIGHT = "visual_height";
+    public static final String VISUAL_CONTENTTYPE = "visual_contenttype";
   }
 }

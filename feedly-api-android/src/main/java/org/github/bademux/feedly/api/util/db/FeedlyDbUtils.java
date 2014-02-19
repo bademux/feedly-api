@@ -302,7 +302,7 @@ public final class FeedlyDbUtils {
   }
 
   public static void processSubscriptions(final ContentResolver contentResolver,
-                                          final Collection<Subscription> inSubscriptions){
+                                          final Collection<Subscription> inSubscriptions) {
     Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
@@ -325,7 +325,6 @@ public final class FeedlyDbUtils {
                categories.toArray(new ContentValues[categories.size()]));
     bulkInsert(contentResolver, FeedsCategories.CONTENT_URI,
                feedsCategories.toArray(new ContentValues[feedsCategories.size()]));
-
   }
 
   protected static void bulkInsert(final ContentResolver contentResolver, final Uri uri,
@@ -389,6 +388,10 @@ public final class FeedlyDbUtils {
                + Entries.SUMMARY + " TEXT,"
                + Entries.SUMMARY_DIRECTION + " TEXT,"
                + Entries.ORIGIN_STREAMID + " TEXT NOT NULL,"
+               + Entries.VISUAL_URL + " TEXT,"
+               + Entries.VISUAL_WIDTH + " INT,"
+               + Entries.VISUAL_HEIGHT + " INT,"
+               + Entries.VISUAL_CONTENTTYPE + " TEXT,"
                + "FOREIGN KEY(" + Entries.ORIGIN_STREAMID + ") REFERENCES "
                + Feeds.TBL_NAME + "(" + Feeds.ID + ") ON UPDATE CASCADE ON DELETE CASCADE)");
 

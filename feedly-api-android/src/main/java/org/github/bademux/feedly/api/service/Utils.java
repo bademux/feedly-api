@@ -19,6 +19,8 @@
 
 package org.github.bademux.feedly.api.service;
 
+import com.google.api.client.util.IOUtils;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -28,9 +30,13 @@ import android.util.Log;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 import static org.github.bademux.feedly.api.service.ServiceManager.Status;
 
@@ -86,7 +92,8 @@ public final class Utils {
   public static void initNetworkStatus(final Context context, final Status status) {
     Intent intent = context.registerReceiver(null,
                                              new IntentFilter(
-                                                 ConnectivityManager.CONNECTIVITY_ACTION));
+                                                 ConnectivityManager.CONNECTIVITY_ACTION)
+    );
     if (intent == null) {
       return;
     }
@@ -110,6 +117,30 @@ public final class Utils {
     final int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
     if (level > 0 && scale > 0) {
       status.isBatteryOk = (level / (float) scale) * 100 > BATTERY_LOW;
+    }
+  }
+
+  /**
+   * Given a URL, establishes an HttpUrlConnection and retrieves
+   * content as a OutputStream
+   */
+  public static int download(String myurl, OutputStream outputStream) throws IOException {
+    InputStream is = null;
+    try {
+      HttpURLConnection conn = (HttpURLConnection) new URL(myurl).openConnection();
+      conn.setReadTimeout(10000);
+      conn.setConnectTimeout(15000);
+      conn.setRequestMethod("GET");
+      conn.setDoInput(true);
+      // Starts the query
+      conn.connect();
+
+      IOUtils.copy(conn.getInputStream(), outputStream, false);
+      return conn.getResponseCode();
+    } finally {
+      if (is != null) {
+        is.close();
+      }
     }
   }
 

@@ -155,6 +155,12 @@ public final class FeedlyDbUtils {
     return values;
   }
 
+  public static ContentValues convert(final FileFeedFavicon fileFeedFavicon) {
+    ContentValues values = convert((Subscription) fileFeedFavicon.getFeed());
+    values.put(Feeds.FAVICON, fileFeedFavicon.getSource());
+    return values;
+  }
+
   public static ContentValues convert(final Subscription subscription) {
     ContentValues values = convert((Feed) subscription);
     values.put(Feeds.SORTID, subscription.getSortid());
@@ -242,7 +248,7 @@ public final class FeedlyDbUtils {
     }
     Entry.Visual visual = entry.getVisual();
     if (visual != null) {
-      values.put(Entries.VISUAL_URL, visual.getUrl());
+      values.put(Entries.VISUAL_URL, visual.getSource());
     }
     List<Entry.Enclosure> enclosures = entry.getEnclosure();
     if (enclosures != null && !enclosures.isEmpty()) {
@@ -274,7 +280,7 @@ public final class FeedlyDbUtils {
 
   public static ContentValues convert(final Entry.File file) {
     ContentValues values = new ContentValues();
-    values.put(Files.URL, file.getUrl());
+    values.put(Files.URL, file.getSource());
     String mime = file.getMime();
     if (mime != null) {
       values.put(Files.MIME, file.getMime());
@@ -373,12 +379,16 @@ public final class FeedlyDbUtils {
 
   public static void processSubscriptions(final ContentResolver contentResolver,
                                           final Collection<Subscription> inSubscriptions) {
-    Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
+    List<ContentValues> feeds = new ArrayList<ContentValues>(inSubscriptions.size());
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
+    List<ContentValues> files = new ArrayList<ContentValues>(inSubscriptions.size());
 
     for (Subscription subscription : inSubscriptions) {
-      feeds.add(convert(subscription));
+      FileFeedFavicon feedFavicon = new FileFeedFavicon(subscription);
+      files.add(convert((Entry.File) feedFavicon));
+      feeds.add(convert(feedFavicon));
+
       List<Category> cats = subscription.getCategories();
       if (cats == null) {
         continue;
@@ -388,6 +398,8 @@ public final class FeedlyDbUtils {
         feedsCategories.add(convert(subscription, category));
       }
     }
+
+    bulkInsert(contentResolver, Files.CONTENT_URI, files.toArray(new ContentValues[files.size()]));
 
     bulkInsert(contentResolver, Feeds.CONTENT_URI,
                feeds.toArray(new ContentValues[feeds.size()]));
@@ -586,4 +598,22 @@ public final class FeedlyDbUtils {
   public static final char SEPARATOR = '\t';
 
   private FeedlyDbUtils() {}
+
+
+  public static class FileFeedFavicon implements Entry.File {
+
+    public Feed getFeed() { return feed; }
+
+    @Override
+    public String getSource() { return TEMPLATE + feed.getWebsite().replace("/", "%2F"); }
+
+    @Override
+    public String getMime() { return "image/x-icon"; }
+
+    private Feed feed;
+
+    public FileFeedFavicon(final Feed feed) { this.feed = feed; }
+
+    private static final String TEMPLATE = "http://plus.google.com/_/favicon?alt=feed&domain=";
+  }
 }

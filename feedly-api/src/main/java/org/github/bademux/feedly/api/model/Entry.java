@@ -337,7 +337,7 @@ public final class Entry extends GenericJson implements Markable {
    * If present, “url” will contain the image URL, “width” and “height” its dimension, and
    * “contentType” its MIME type.
    */
-  public static class Visual extends File {
+  public static class Visual implements File {
 
     @Key
     protected String url;
@@ -355,13 +355,13 @@ public final class Entry extends GenericJson implements Markable {
     public Integer getHeight() { return height; }
 
     @Override
-    public String getUrl() { return url; }
+    public String getSource() { return url; }
 
     @Override
     public String getMime() { return contentType; }
   }
 
-  public static class Enclosure extends File {
+  public static class Enclosure implements File {
 
     @Key
     protected String href;
@@ -375,17 +375,17 @@ public final class Entry extends GenericJson implements Markable {
     public Long getLength() { return length; }
 
     @Override
-    public String getUrl() { return href; }
+    public String getSource() { return href; }
 
     @Override
     public String getMime() { return type; }
   }
 
-  public abstract static class File {
+  public interface File {
 
-    public abstract String getUrl();
+    public String getSource();
 
-    public abstract String getMime();
+    public String getMime();
   }
 
   @SuppressWarnings("serial")

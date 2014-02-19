@@ -24,7 +24,7 @@ import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 
 
-public abstract class Feed extends IdGenericJson implements Markable, Stream {
+public abstract class Feed extends IdGenericJson implements Markable, Stream{
 
   public static final String PREFIX = "feed";
 

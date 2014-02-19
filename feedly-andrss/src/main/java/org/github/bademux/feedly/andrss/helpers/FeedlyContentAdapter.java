@@ -40,10 +40,15 @@ package org.github.bademux.feedly.andrss.helpers;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.view.View;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
+
+import java.text.DateFormat;
+import java.util.Date;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
@@ -54,7 +59,8 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   public FeedlyContentAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, R.layout.fragment_content_list_item_simple, null, FROM, TO, 0);
-
+    mDateFormat = android.text.format.DateFormat.getDateFormat(context);
+    setViewBinder(createBinder());
     mQueryHandler = queryHandler;
 
     token = mQueryHandler.addQueryListener(this);
@@ -73,6 +79,31 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   @Override
   public void onQueryComplete(final int token, final Object cookie,
                               final Cursor cursor) { changeCursor(cursor); }
+
+  public ViewBinder createBinder() {
+    return new ViewBinder() {
+      @Override
+      public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
+        switch (view.getId()) {
+          case R.id.content_list_thumbnail: return true;
+          case R.id.content_list_meta_crawled:
+            Long timestamp = cursor.getLong(columnIndex);
+            if (timestamp != null) {
+              synchronized (mDateFormat) {
+                ((TextView) view).setText(mDateFormat.format(new Date(timestamp)));
+              }
+            }
+            return true;
+          default:
+        }
+
+        return false;
+      }
+    };
+  }
+
+
+  private final DateFormat mDateFormat;
 
   private BackgroundQueryHandler mQueryHandler;
 

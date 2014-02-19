@@ -14,4 +14,5 @@
     <string name="msg_login">Please login</string>
     <string name="msg_signed_with">Signed with %1$s (%2$s)</string>
     <string name="msg_signed_out">Signed out</string>
+    <string name="desc_content_list_thumbnail">thumbnail</string>
 </resources>

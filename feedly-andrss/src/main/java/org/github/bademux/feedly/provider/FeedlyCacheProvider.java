@@ -198,6 +198,9 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.update(Feeds.TBL_NAME, values, selection, selectionArgs);
       case Code.CATEGORIES:
         return db.update(Categories.TBL_NAME, values, selection, selectionArgs);
+      case Code.FILES:
+        return db.update(Files.TBL_NAME, values, Files.URL + "=?",
+                         new String[]{uri.getLastPathSegment()});
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -293,7 +296,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     static final String TAG = "DatabaseHelper";
   }

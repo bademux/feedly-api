@@ -21,6 +21,7 @@ package org.github.bademux.feedly.service;
 import android.app.DownloadManager;
 import android.app.IntentService;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -70,6 +71,7 @@ public class FeedlyCacheService extends IntentService {
           if (subscriptions != null) {
             processSubscriptions(contentResolver, subscriptions);
           }
+        case ServiceManager.ACTION_REFRESH:break;
         case ACTION_FETCH_ENTRIES:
           Feedly service = mFeedlyUtil.service();
           Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
@@ -91,8 +93,14 @@ public class FeedlyCacheService extends IntentService {
             } while (c.moveToNext());
           }
           break;
-        case ACTION_DOWNLOAD_COMPLETED: break;
-        case ServiceManager.ACTION_REFRESH:
+        case ACTION_DOWNLOAD_COMPLETED:
+          String url = intent.getStringExtra(FeedlyCacheService.EXTRA_URL);
+          ContentValues values = new ContentValues(2);
+          values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
+          values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
+          Uri uri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
+          contentResolver.update(uri, values, null, null);
+          break;
         default:
       }
     } catch (Exception e) {

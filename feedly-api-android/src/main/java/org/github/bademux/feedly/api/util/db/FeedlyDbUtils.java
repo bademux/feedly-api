@@ -536,11 +536,13 @@ public final class FeedlyDbUtils {
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Files.TBL_NAME + "("
                + Files.URL + " TEXT PRIMARY KEY NOT NULL,"
                + Files.MIME + " TEXT, "
-               + Files.RETRIES + " INT, "
+               + Files.FILENAME + " TEXT, "
                + Files.CREATED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)");
 
     db.execSQL("CREATE INDEX idx_" + Files.TBL_NAME + "_" + Files.URL
                + " ON " + Files.TBL_NAME + "(" + Files.URL + ")");
+    db.execSQL("CREATE INDEX idx_" + Files.TBL_NAME + "_" + Files.FILENAME
+               + " ON " + Files.TBL_NAME + "(" + Files.FILENAME + ")");
   }
 
   public static void dropAll(final SQLiteDatabase db) {

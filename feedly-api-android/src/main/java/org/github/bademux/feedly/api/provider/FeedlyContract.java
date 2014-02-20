@@ -204,7 +204,7 @@ public final class FeedlyContract {
 
     public static final String URL = "url";
     public static final String MIME = "mime";
-    public static final String RETRIES = "retries";
+    public static final String FILENAME = "filename";
     public static final String CREATED = "created";
   }
 }

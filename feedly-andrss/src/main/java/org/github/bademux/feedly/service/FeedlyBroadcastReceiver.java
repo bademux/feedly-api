@@ -19,19 +19,56 @@
 
 package org.github.bademux.feedly.service;
 
+import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 
 import org.github.bademux.feedly.api.service.ServiceManager;
+
+import static android.content.Context.DOWNLOAD_SERVICE;
 
 public class FeedlyBroadcastReceiver extends BroadcastReceiver {
 
   @Override
   public void onReceive(final Context context, final Intent intent) {
-    if (intent != null && intent.getAction() != null) {
+    if (intent == null) {
+      return;
+    }
+    String action = intent.getAction();
+    if (action == null) {
+      return;
+    }
+    if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
+      long downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+      if (downloadId == -1) {
+        return;
+      }
+      DownloadManager dm = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
+      Cursor c = dm.query(new DownloadManager.Query().setFilterById(downloadId));
+      if (c.moveToFirst()) {
+        int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+          String uri = c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI));
+          String filename = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME));
+          String mime = c.getString(c.getColumnIndex(DownloadManager.COLUMN_MEDIA_TYPE));
+          context.startService(createIntent(context, uri, filename, mime));
+        }
+      }
+    } else {
       new FeedlyServiceManager(context).process(intent);
     }
+  }
+
+  private static Intent createIntent(final Context context,
+                                     final String url, final String filename, final String mime) {
+    Intent intent = new Intent(FeedlyCacheService.ACTION_DOWNLOAD_COMPLETED, null,
+                               context, FeedlyCacheService.class);
+    intent.putExtra(FeedlyCacheService.EXTRA_URL, url);
+    intent.putExtra(FeedlyCacheService.EXTRA_FILENAME, filename);
+    intent.putExtra(FeedlyCacheService.EXTRA_MIME, mime);
+    return intent;
   }
 
   public class FeedlyServiceManager extends ServiceManager {

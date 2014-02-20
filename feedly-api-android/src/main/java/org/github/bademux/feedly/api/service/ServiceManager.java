@@ -20,6 +20,7 @@
 package org.github.bademux.feedly.api.service;
 
 import android.app.AlarmManager;
+import android.app.DownloadManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -59,6 +60,8 @@ public abstract class ServiceManager {
             intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false);
         break;
       case Intent.ACTION_BOOT_COMPLETED: case ACTION_INIT: Utils.initAll(mContext, mStatus); break;
+      case DownloadManager.ACTION_DOWNLOAD_COMPLETE:
+        return false;
       default: return false;
     }
 

@@ -18,9 +18,12 @@
 
 package org.github.bademux.feedly.service;
 
+import android.app.DownloadManager;
 import android.app.IntentService;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
@@ -33,7 +36,9 @@ import org.github.bademux.feedly.api.util.FeedlyUtil;
 import java.io.IOException;
 import java.util.List;
 
+import static android.app.DownloadManager.Request;
 import static org.github.bademux.feedly.api.model.Category.ALL;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processEntries;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processSubscriptions;
 
@@ -65,7 +70,6 @@ public class FeedlyCacheService extends IntentService {
           if (subscriptions != null) {
             processSubscriptions(contentResolver, subscriptions);
           }
-          break;
         case ACTION_FETCH_ENTRIES:
           Feedly service = mFeedlyUtil.service();
           Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
@@ -73,9 +77,21 @@ public class FeedlyCacheService extends IntentService {
           if (result != null) {
             processEntries(contentResolver, result.items());
           }
+        case ACTION_DOWNLOAD:
+          String where = Files.CREATED + ">datetime('now','localtime') AND"
+                         + Files.FILENAME + " IS NULL";
+          Cursor c = contentResolver.query(Files.CONTENT_URI, null, where, null, null);
+          if (c.moveToFirst()) {
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            Uri cacheDir = Uri.fromFile(getCacheDir());
+            do {
+              Uri url = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
+              dm.enqueue(new Request(url).setDestinationUri(cacheDir).setVisibleInDownloadsUi(false)
+                                         .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
+            } while (c.moveToNext());
+          }
           break;
-        case ACTION_DOWNLOAD_DATA:
-          break;
+        case ACTION_DOWNLOAD_COMPLETED: break;
         case ServiceManager.ACTION_REFRESH:
         default:
       }
@@ -93,8 +109,18 @@ public class FeedlyCacheService extends IntentService {
       "org.github.bademux.feedly.api.service.Subscription";
 
   public final static String ACTION_FETCH_ENTRIES = "org.github.bademux.feedly.api.service.Entries";
-  private final static String ACTION_DOWNLOAD_DATA =
-      "org.github.bademux.feedly.api.service.DOWNLOAD";
+
+  protected final static String ACTION_DOWNLOAD = "org.github.bademux.feedly.api.service.Download";
+
+  protected final static String ACTION_DOWNLOAD_COMPLETED =
+      "org.github.bademux.feedly.api.service.DownloadCompleted";
+
+  protected final static String EXTRA_URL = "org.github.bademux.feedly.api.service.EXTRA_URL";
+
+  protected final static String EXTRA_MIME = "org.github.bademux.feedly.api.service.EXTRA_MIME";
+
+  protected static final String EXTRA_FILENAME =
+      "org.github.bademux.feedly.api.service.EXTRA_FILENAME";
 
   static final String TAG = "FeedlyCacheService";
 }

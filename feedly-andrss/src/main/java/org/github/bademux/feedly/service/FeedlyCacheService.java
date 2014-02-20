@@ -62,49 +62,56 @@ public class FeedlyCacheService extends IntentService {
   @Override
   protected void onHandleIntent(final Intent intent) {
     Log.i(TAG, "onStartCommand " + intent.getAction());
-    ContentResolver contentResolver = getContentResolver();
-    final String action = intent.getAction();
     try {
-      switch (action) {
-        case ACTION_FETCH_SUBSCRIPTION:
-          List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
-          if (subscriptions != null) {
-            processSubscriptions(contentResolver, subscriptions);
-          }
-        case ServiceManager.ACTION_REFRESH:break;
-        case ACTION_FETCH_ENTRIES:
-          Feedly service = mFeedlyUtil.service();
-          Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
-          EntriesResponse result = request.execute();
-          if (result != null) {
-            processEntries(contentResolver, result.items());
-          }
-        case ACTION_DOWNLOAD:
-          String where = Files.CREATED + ">datetime('now','localtime') AND"
-                         + Files.FILENAME + " IS NULL";
-          Cursor c = contentResolver.query(Files.CONTENT_URI, null, where, null, null);
-          if (c.moveToFirst()) {
-            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-            Uri cacheDir = Uri.fromFile(getCacheDir());
-            do {
-              Uri url = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
-              dm.enqueue(new Request(url).setDestinationUri(cacheDir).setVisibleInDownloadsUi(false)
-                                         .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
-            } while (c.moveToNext());
-          }
-          break;
-        case ACTION_DOWNLOAD_COMPLETED:
-          String url = intent.getStringExtra(FeedlyCacheService.EXTRA_URL);
-          ContentValues values = new ContentValues(2);
-          values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
-          values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
-          Uri uri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
-          contentResolver.update(uri, values, null, null);
-          break;
-        default:
-      }
+      handleIntent(intent, getContentResolver());
     } catch (Exception e) {
       Log.e(TAG, "error while pooling", e);
+    }
+  }
+
+  private void handleIntent(final Intent intent, final ContentResolver contentResolver)
+      throws IOException {
+    final String action = intent.getAction();
+    if (action == null) {
+      return;
+    }
+    switch (action) {
+      case ACTION_FETCH_SUBSCRIPTION:
+        List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
+        if (subscriptions != null) {
+          processSubscriptions(contentResolver, subscriptions);
+        }
+      case ServiceManager.ACTION_REFRESH:
+      case ACTION_FETCH_ENTRIES:
+        Feedly service = mFeedlyUtil.service();
+        Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
+        EntriesResponse result = request.execute();
+        if (result != null) {
+          processEntries(contentResolver, result.items());
+        }
+      case ACTION_DOWNLOAD:
+        String where = Files.CREATED + ">= datetime('now') AND" + Files.FILENAME + " IS NULL";
+        Cursor c = contentResolver.query(Files.CONTENT_URI, null, where, null, null);
+        if (c.moveToFirst()) {
+          DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+          Uri cacheDir = Uri.fromFile(getCacheDir());
+          do {
+            Uri url = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
+            dm.enqueue(new Request(url).setDestinationUri(cacheDir).setVisibleInDownloadsUi(false)
+                                       .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
+          } while (c.moveToNext());
+        }
+        break;
+      case ACTION_DOWNLOAD_COMPLETED:
+        String url = intent.getStringExtra(FeedlyCacheService.EXTRA_URL);
+        ContentValues values = new ContentValues(2);
+        values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
+        values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
+        Uri uri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
+        contentResolver.update(uri, values, null, null);
+        break;
+      default:
+        Log.d(TAG, "unknown action" + action);
     }
   }
 

@@ -40,6 +40,7 @@ package org.github.bademux.feedly.andrss.helpers;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.text.Html;
 import android.view.View;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -85,7 +86,15 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
       @Override
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
         switch (view.getId()) {
-          case R.id.content_list_thumbnail: return true;
+          case R.id.content_list_visual:
+//          ImageView view = (ImageView) findViewById(R.id.imageView1);
+//          String uriString = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
+//          view.setImageURI(Uri.parse(uriString));
+            return true;
+          case R.id.content_list_summary:
+            String text = cursor.getString(columnIndex);
+            if (text != null) { ((TextView) view).setText(Html.fromHtml(text) + "..."); }
+            return true;
           case R.id.content_list_meta_crawled:
             Long timestamp = cursor.getLong(columnIndex);
             if (timestamp != null) {
@@ -103,21 +112,25 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   }
 
 
-  private final DateFormat mDateFormat;
+  private final BackgroundQueryHandler mQueryHandler;
 
-  private BackgroundQueryHandler mQueryHandler;
+  private final DateFormat mDateFormat;
 
   private int token;
   private static final String[] FROM = new String[]{Entries.TITLE,
-                                                    "substr(" + Entries.SUMMARY + ",1,32)",
+                                                    Entries.VISUAL_URL,
+                                                    "substr(" + Entries.SUMMARY + ",1,150)",
                                                     Entries.ENGAGEMENT,
+                                                    Entries.ORIGIN_TITLE,
                                                     Entries.AUTHOR,
                                                     Entries.CRAWLED,
                                                     Entries.ID};
 
   private static final int[] TO = new int[]{R.id.content_list_title,
-                                            R.id.content_list_preview,
+                                            R.id.content_list_visual,
+                                            R.id.content_list_summary,
                                             R.id.content_list_meta_read,
+                                            R.id.content_list_meta_src_title,
                                             R.id.content_list_meta_author,
                                             R.id.content_list_meta_crawled};
 }

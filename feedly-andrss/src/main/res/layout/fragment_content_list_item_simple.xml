@@ -27,9 +27,11 @@
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content">
 
-        <ImageView android:id="@+id/content_list_thumbnail"
+        <ImageView android:id="@+id/content_list_visual"
                    android:layout_width="wrap_content"
                    android:layout_height="wrap_content"
+                   android:minWidth="50dp"
+                   android:maxWidth="50dp"
                    android:src="@drawable/ic_launcher"
                    android:contentDescription="@string/desc_content_list_thumbnail"/>
 
@@ -39,7 +41,7 @@
                   android:textAppearance="?android:attr/textAppearanceListItem"/>
     </LinearLayout>
 
-    <TextView android:id="@+id/content_list_preview"
+    <TextView android:id="@+id/content_list_summary"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:textAppearance="?android:attr/textAppearanceListItemSmall"/>
@@ -50,6 +52,11 @@
 
 
         <TextView android:id="@+id/content_list_meta_read"
+                  android:layout_width="wrap_content"
+                  android:layout_height="match_parent"
+                  android:textAppearance="?android:attr/textAppearanceSmall"/>
+
+        <TextView android:id="@+id/content_list_meta_src_title"
                   android:layout_width="wrap_content"
                   android:layout_height="match_parent"
                   android:textAppearance="?android:attr/textAppearanceSmall"/>

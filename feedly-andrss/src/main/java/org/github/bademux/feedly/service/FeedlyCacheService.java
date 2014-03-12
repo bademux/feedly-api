@@ -89,15 +89,18 @@ public class FeedlyCacheService extends IntentService {
         if (result != null) {
           processEntries(contentResolver, result.items());
         }
-      case ACTION_DOWNLOAD:
-        String where = Files.CREATED + ">= datetime('now') AND" + Files.FILENAME + " IS NULL";
-        Cursor c = contentResolver.query(Files.CONTENT_URI, null, where, null, null);
+      case ACTION_DOWNLOAD:        //Get all not cached files
+        Uri notcachedUri = Files.CONTENT_URI.buildUpon().appendPath("notcached").build();
+        Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
         if (c.moveToFirst()) {
           DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-          Uri cacheDir = Uri.fromFile(getCacheDir());
           do {
-            Uri url = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
-            dm.enqueue(new Request(url).setDestinationUri(cacheDir).setVisibleInDownloadsUi(false)
+            long fileId = c.getLong(c.getColumnIndex(Files.ID));
+            Uri uri = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
+            Uri destinationUri = Uri.fromFile(getExternalCacheDir()).buildUpon()
+                                    .appendPath("file-" + fileId).build();
+            dm.enqueue(new Request(uri).setDestinationUri(destinationUri)
+                                       .setVisibleInDownloadsUi(false)
                                        .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
           } while (c.moveToNext());
         }
@@ -107,8 +110,8 @@ public class FeedlyCacheService extends IntentService {
         ContentValues values = new ContentValues(2);
         values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
         values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
-        Uri uri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
-        contentResolver.update(uri, values, null, null);
+        Uri updateUri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
+        contentResolver.update(updateUri, values, null, null);
         break;
       default:
         Log.d(TAG, "unknown action" + action);

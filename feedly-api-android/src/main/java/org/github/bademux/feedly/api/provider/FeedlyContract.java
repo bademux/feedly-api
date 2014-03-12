@@ -196,12 +196,12 @@ public final class FeedlyContract {
     public static final String ORIGIN_STREAMID = "origin_streamid";
     public static final String ORIGIN_TITLE = "origin_title";
     public static final String VISUAL_URL = "visual_url";
-    public static final String ENCLOSURE_MIMES = "ENCLOSURE_MIMES";
+    public static final String ENCLOSURE_MIMES = "enclosure_mimes";
   }
-
 
   protected interface FileStats {
 
+    public static final String ID = "_id";
     public static final String URL = "url";
     public static final String MIME = "mime";
     public static final String FILENAME = "filename";

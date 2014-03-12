@@ -42,6 +42,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.text.Html;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
@@ -53,6 +54,7 @@ import java.util.Date;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.AsyncQueryListener;
 
 public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
@@ -87,13 +89,17 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
         switch (view.getId()) {
           case R.id.content_list_visual:
-//          ImageView view = (ImageView) findViewById(R.id.imageView1);
-//          String uriString = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
-//          view.setImageURI(Uri.parse(uriString));
+            String uriString = cursor.getString(columnIndex);
+            if (uriString != null) {
+              Uri uri = Files.CONTENT_URI.buildUpon().appendPath(uriString).build();
+              ((ImageView) view).setImageURI(uri);
+            }
             return true;
           case R.id.content_list_summary:
             String text = cursor.getString(columnIndex);
-            if (text != null) { ((TextView) view).setText(Html.fromHtml(text) + "..."); }
+            if (text != null) {
+              ((TextView) view).setText(Html.fromHtml(text) + "...");
+            }
             return true;
           case R.id.content_list_meta_crawled:
             Long timestamp = cursor.getLong(columnIndex);

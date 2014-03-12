@@ -49,6 +49,7 @@ import java.util.TreeSet;
 
 import static android.content.ContentProviderOperation.Builder;
 import static android.content.ContentProviderOperation.newInsert;
+import static android.webkit.URLUtil.isNetworkUrl;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
@@ -248,7 +249,10 @@ public final class FeedlyDbUtils {
     }
     Entry.Visual visual = entry.getVisual();
     if (visual != null) {
-      values.put(Entries.VISUAL_URL, visual.getSource());
+      String src = visual.getSource();
+      if (!Entry.File.EMPTY_SOURCE.equals(src)) {
+        values.put(Entries.VISUAL_URL, src);
+      }
     }
     List<Entry.Enclosure> enclosures = entry.getEnclosure();
     if (enclosures != null && !enclosures.isEmpty()) {
@@ -283,7 +287,7 @@ public final class FeedlyDbUtils {
     values.put(Files.URL, file.getSource());
     String mime = file.getMime();
     if (mime != null) {
-      values.put(Files.MIME, file.getMime());
+      values.put(Files.MIME, mime);
     }
     return values;
   }
@@ -348,14 +352,16 @@ public final class FeedlyDbUtils {
       }
 
       Entry.Visual visual = entry.getVisual();
-      if (visual != null) {
+      if (visual != null && isNetworkUrl(visual.getSource())) {
         files.add(convert(visual));
       }
 
       List<Entry.Enclosure> enclosures = entry.getEnclosure();
       if (enclosures != null) {
         for (Entry.Enclosure enclosure : enclosures) {
-          files.add(convert(enclosure));
+          if (isNetworkUrl(enclosure.getSource())) {
+            files.add(convert(enclosure));
+          }
         }
       }
     }
@@ -602,7 +608,7 @@ public final class FeedlyDbUtils {
   private FeedlyDbUtils() {}
 
 
-  public static class FileFeedFavicon implements Entry.File {
+  static class FileFeedFavicon implements Entry.File {
 
     public Feed getFeed() { return feed; }
 

@@ -53,7 +53,7 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
           String uri = c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI));
           String filename = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME));
           String mime = c.getString(c.getColumnIndex(DownloadManager.COLUMN_MEDIA_TYPE));
-          context.startService(createIntent(context, uri, filename, mime));
+          context.startService(createIntentDlComplete(context, uri, filename, mime));
         }
       }
     } else {
@@ -61,8 +61,8 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
     }
   }
 
-  private static Intent createIntent(final Context context,
-                                     final String url, final String filename, final String mime) {
+  private static Intent createIntentDlComplete(final Context context, final String url,
+                                               final String filename, final String mime) {
     Intent intent = new Intent(FeedlyCacheService.ACTION_DOWNLOAD_COMPLETED, null,
                                context, FeedlyCacheService.class);
     intent.putExtra(FeedlyCacheService.EXTRA_URL, url);

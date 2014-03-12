@@ -30,10 +30,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -71,6 +74,8 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/notcached", Code.FILE_NOT_CACHED);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/*", Code.FILE);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME, Code.FILES);
   }
 
@@ -120,9 +125,12 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.TAGS:
         return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
-      case Code.FILES:
-        return db.query(Files.TBL_NAME, projection, Files.URL + "=?",
-                        new String[]{uri.getLastPathSegment()}, null, null, null);
+      case Code.FILE:
+        return db.query(Files.TBL_NAME, projection,
+                        Files.URL + "=?", new String[]{uri.getLastPathSegment()}, null, null, null);
+      case Code.FILE_NOT_CACHED:
+        return db.query(Files.TBL_NAME, new String[]{"rowid as _id", Files.URL},
+                        Files.FILENAME + " IS NULL", null, null, null, null);
       case Code.AUTHORITY: return null;
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
@@ -152,7 +160,7 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.ENTRIES_TAGS:
         return db.insertWithOnConflict(EntriesTags.TBL_NAME, null, values, CONFLICT_IGNORE);
       case Code.FILES:
-        return db.replace(Files.TBL_NAME, null, values);
+        return db.insertWithOnConflict(Files.TBL_NAME, null, values, CONFLICT_IGNORE);
       case UriMatcher.NO_MATCH:
         throw new UnsupportedOperationException("Unmatched Uri");
       default:
@@ -198,12 +206,52 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.update(Feeds.TBL_NAME, values, selection, selectionArgs);
       case Code.CATEGORIES:
         return db.update(Categories.TBL_NAME, values, selection, selectionArgs);
-      case Code.FILES:
+      case Code.FILE:
         return db.update(Files.TBL_NAME, values, Files.URL + "=?",
                          new String[]{uri.getLastPathSegment()});
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
+  }
+
+  @Override
+  public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+    Cursor c = getCursorForFile(uri);
+    int count = (c != null) ? c.getCount() : 0;
+    if (count != 1) {
+      // If there is not exactly one result, throw an appropriate
+      // exception.
+      if (c != null) {
+        c.close();
+      }
+      if (count == 0) {
+        throw new FileNotFoundException("No entry for " + uri);
+      }
+      throw new FileNotFoundException("Multiple items at " + uri);
+    }
+
+    c.moveToFirst();
+    int i = c.getColumnIndex("_data");
+    String path = (i >= 0 ? c.getString(i) : null);
+    c.close();
+    if (path == null) {
+      throw new FileNotFoundException("Column _data not found.");
+    }
+    return ParcelFileDescriptor.open(new File(path), parseMode(mode));
+  }
+
+  protected Cursor getCursorForFile(final Uri uri) {
+    final Cursor c;
+    switch (URI_MATCHER.match(uri)) {
+      case Code.FILE:
+        String cacheDir = getContext().getExternalCacheDir().getAbsolutePath();
+        c = query(uri, new String[]{"('" + cacheDir + "/file-' || rowid) as _data"},
+                  null, null, null);
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+    }
+    return c;
   }
 
   /**
@@ -256,6 +304,39 @@ public class FeedlyCacheProvider extends ContentProvider {
     return true;
   }
 
+  /**
+   * Converts a string representing a file mode, such as "rw", into a bitmask.
+   * <p>
+   *
+   * @param mode The string representation of the file mode.
+   * @return A bitmask representing the given file mode.
+   * @throws IllegalArgumentException if the given string does not match a known file mode.
+   */
+  public static int parseMode(String mode) {
+    final int modeBits;
+    if ("r".equals(mode)) {
+      modeBits = ParcelFileDescriptor.MODE_READ_ONLY;
+    } else if ("w".equals(mode) || "wt".equals(mode)) {
+      modeBits = ParcelFileDescriptor.MODE_WRITE_ONLY
+                 | ParcelFileDescriptor.MODE_CREATE
+                 | ParcelFileDescriptor.MODE_TRUNCATE;
+    } else if ("wa".equals(mode)) {
+      modeBits = ParcelFileDescriptor.MODE_WRITE_ONLY
+                 | ParcelFileDescriptor.MODE_CREATE
+                 | ParcelFileDescriptor.MODE_APPEND;
+    } else if ("rw".equals(mode)) {
+      modeBits = ParcelFileDescriptor.MODE_READ_WRITE
+                 | ParcelFileDescriptor.MODE_CREATE;
+    } else if ("rwt".equals(mode)) {
+      modeBits = ParcelFileDescriptor.MODE_READ_WRITE
+                 | ParcelFileDescriptor.MODE_CREATE
+                 | ParcelFileDescriptor.MODE_TRUNCATE;
+    } else {
+      throw new IllegalArgumentException("Bad mode '" + mode + "'");
+    }
+    return modeBits;
+  }
+
   private DatabaseHelper mHelper;
 
   private WeakReference<ContentResolver> mResolver;
@@ -292,7 +373,10 @@ public class FeedlyCacheProvider extends ContentProvider {
     }
 
 
-    public DatabaseHelper(final Context context) { super(context, DB_NAME, null, VERSION); }
+    public DatabaseHelper(final Context context) {
+      super(context, context.getExternalFilesDir(null).getAbsolutePath() + '/' + DB_NAME,
+            null, VERSION);
+    }
 
     private static final String DB_NAME = "feedly_cache.db";
 
@@ -309,6 +393,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;
     static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503;
-    static final int FILES = 600;
+    static final int FILES = 600, FILE = 601, FILE_NOT_CACHED = 602;
   }
 }

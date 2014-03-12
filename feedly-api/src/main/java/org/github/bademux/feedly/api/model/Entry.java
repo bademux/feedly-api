@@ -383,6 +383,8 @@ public final class Entry extends GenericJson implements Markable {
 
   public interface File {
 
+    public static final String EMPTY_SOURCE = "none";
+
     public String getSource();
 
     public String getMime();

@@ -22,16 +22,16 @@
               android:layout_height="match_parent"
               android:orientation="vertical">
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
                   android:orientation="horizontal"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content">
 
         <ImageView android:id="@+id/content_list_visual"
-                   android:layout_width="wrap_content"
+                   android:layout_width="match_parent"
                    android:layout_height="wrap_content"
-                   android:minWidth="50dp"
-                   android:maxWidth="50dp"
+                   android:scaleType="fitXY"
+                   android:adjustViewBounds="true"
                    android:src="@drawable/ic_launcher"
                    android:contentDescription="@string/desc_content_list_thumbnail"/>
 
@@ -39,12 +39,13 @@
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"
                   android:textAppearance="?android:attr/textAppearanceListItem"/>
-    </LinearLayout>
+    </FrameLayout>
 
     <TextView android:id="@+id/content_list_summary"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
-              android:textAppearance="?android:attr/textAppearanceListItemSmall"/>
+              android:textAppearance="?android:attr/textAppearanceListItemSmall"
+              android:linksClickable="true"/>
 
     <LinearLayout android:orientation="horizontal"
                   android:layout_width="match_parent"

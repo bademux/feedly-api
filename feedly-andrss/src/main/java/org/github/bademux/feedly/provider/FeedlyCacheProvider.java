@@ -75,6 +75,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/notcached", Code.FILE_NOT_CACHED);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/#", Code.FILE_BY_ID);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/*", Code.FILE);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME, Code.FILES);
   }
@@ -120,18 +121,22 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.query(Categories.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
       case Code.TAG:
-        return db.query(Tags.TBL_NAME, projection, selection, selectionArgs,
-                        null, null, null);
+        return db.query(Tags.TBL_NAME, projection, selection, selectionArgs, null, null, null);
       case Code.TAGS:
         return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
       case Code.FILE:
         return db.query(Files.TBL_NAME, projection,
                         Files.URL + "=?", new String[]{uri.getLastPathSegment()}, null, null, null);
+      case Code.FILE_BY_ID:
+        return db.query(Files.TBL_NAME, projection,
+                        Files.ID + "=?", new String[]{uri.getLastPathSegment()}, null, null, null);
       case Code.FILE_NOT_CACHED:
-        return db.query(Files.TBL_NAME, new String[]{"rowid as _id", Files.URL},
+        return db.query(Files.TBL_NAME, new String[]{Files.ID, Files.URL},
                         Files.FILENAME + " IS NULL", null, null, null, null);
       case Code.AUTHORITY: return null;
+      case UriMatcher.NO_MATCH:
+        throw new UnsupportedOperationException("Unmatched Uri");
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -176,6 +181,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     assert db != null;
     switch (URI_MATCHER.match(uri)) {
       case Code.ENTRIES:
+        //TODO: delete cached files - use files_by_entries table
         return db.delete(Entries.TBL_NAME, selection, selectionArgs);
       case Code.FEEDS:
         return db.delete(Feeds.TBL_NAME, selection, selectionArgs);
@@ -187,6 +193,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.delete(Tags.TBL_NAME, selection, selectionArgs);
       case Code.ENTRIES_TAGS:
         return db.delete(EntriesTags.TBL_NAME, selection, selectionArgs);
+      case UriMatcher.NO_MATCH:
+        throw new UnsupportedOperationException("Unmatched Uri");
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -209,6 +217,8 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.FILE:
         return db.update(Files.TBL_NAME, values, Files.URL + "=?",
                          new String[]{uri.getLastPathSegment()});
+      case UriMatcher.NO_MATCH:
+        throw new UnsupportedOperationException("Unmatched Uri");
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
@@ -393,6 +403,6 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;
     static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503;
-    static final int FILES = 600, FILE = 601, FILE_NOT_CACHED = 602;
+    static final int FILES = 600, FILE = 601, FILE_BY_ID = 602, FILE_NOT_CACHED = 603;
   }
 }

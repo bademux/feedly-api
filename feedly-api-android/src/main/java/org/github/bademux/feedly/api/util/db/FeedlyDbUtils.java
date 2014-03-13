@@ -23,7 +23,6 @@ package org.github.bademux.feedly.api.util.db;
 import com.google.api.client.repackaged.com.google.common.base.Joiner;
 import com.google.api.client.repackaged.com.google.common.base.Strings;
 
-import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -40,20 +39,19 @@ import org.github.bademux.feedly.api.model.Tag;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import static android.content.ContentProviderOperation.Builder;
-import static android.content.ContentProviderOperation.newInsert;
 import static android.webkit.URLUtil.isNetworkUrl;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesFiles;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
@@ -63,102 +61,16 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 
 public final class FeedlyDbUtils {
 
-  public static Collection<ContentProviderOperation> processSubscriptions(
-      final Collection<Subscription> subscriptions) {
-    //approx. size: subscriptions + categories + mappings
-    List<ContentProviderOperation> operations = new ArrayList<>(subscriptions.size() * 2);
-    Map<String, ContentProviderOperation> miscOps = new HashMap<>();
-    for (Subscription subscription : subscriptions) {
-      operations.add(newInsert(Feeds.CONTENT_URI).withValues(convert(subscription)).build());
-      processCategories(operations, miscOps, subscription, subscription.getCategories());
-    }
-    return operations;
-  }
-
-  public static Collection<ContentProviderOperation> processEntries(
-      final Collection<Entry> entries) {
-    //approx. size: subscriptions + categories + mappings
-    List<ContentProviderOperation> operations = new ArrayList<>(entries.size() * 2);
-    Map<String, ContentProviderOperation> miscOps = new HashMap<>();
-    for (Entry entry : entries) {
-      Entry.Origin stream = entry.getOrigin();
-
-      Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
-      addIfNew(operations, miscOps, newInsert(Feeds.CONTENT_URI).withValues(convert(feed)),
-               feed.getId());
-      processCategories(operations, miscOps, feed, entry.getCategories());
-
-      operations.add(newInsert(Entries.CONTENT_URI).withValues(convert(entry)).build());
-      processTags(operations, miscOps, entry, entry.getTags());
-    }
-    return operations;
-  }
-
-  private static void addIfNew(final List<ContentProviderOperation> operations,
-                               final Map<String, ContentProviderOperation> miscOps,
-                               final Builder builder, final String id) {
-    if (!miscOps.containsKey(id)) {
-      final ContentProviderOperation op = builder.build();
-      operations.add(op);
-      miscOps.put(id, op);
-    }
-  }
-
-  protected static void processCategories(final List<ContentProviderOperation> operations,
-                                          final Map<String, ContentProviderOperation> miscOps,
-                                          final Feed feed, final List<Category> categories) {
-    if (categories == null) {
-      return;
-    }
-    for (int i = 0; i < categories.size(); i++) {
-      Category category = categories.get(i);
-      addIfNew(operations, miscOps,
-               newInsert(Categories.CONTENT_URI).withValues(convert(category)), category.getId());
-
-      Builder builder = newInsert(FeedsCategories.CONTENT_URI).withValues(convert(feed, category));
-      //hints commiting after this operation if last item
-      if (i == categories.size()) {
-        builder.withYieldAllowed(true);
-      }
-      addIfNew(operations, miscOps, builder, feed.getId() + category.getId());
-    }
-  }
-
-  protected static void processTags(final List<ContentProviderOperation> operations,
-                                    final Map<String, ContentProviderOperation> miscOps,
-                                    final Entry entry, final List<Tag> tags) {
-    if (tags == null) {
-      return;
-    }
-    for (int i = 0; i < tags.size(); i++) {
-      Tag tag = tags.get(i);
-      addIfNew(operations, miscOps,
-               newInsert(Tags.CONTENT_URI).withValues(convert(tag)), tag.getId());
-      Builder builder = newInsert(EntriesTags.CONTENT_URI).withValues(convert(entry, tag));
-      //hints commiting after this operation if last item
-      if (i == tags.size()) {
-        builder.withYieldAllowed(true);
-      }
-      addIfNew(operations, miscOps, builder, entry.getId() + tag.getId());
-    }
-  }
-
-  public static ContentValues convert(final Feed subscription) {
+  public static ContentValues convert(final Feed feed) {
     ContentValues values = new ContentValues();
-    values.put(Feeds.ID, subscription.getId());
-    values.put(Feeds.TITLE, subscription.getTitle());
-    values.put(Feeds.WEBSITE, subscription.getWebsite());
-    values.put(Feeds.VELOCITY, subscription.getVelocity());
-    Feed.State state = subscription.getState();
+    values.put(Feeds.ID, feed.getId());
+    values.put(Feeds.TITLE, feed.getTitle());
+    values.put(Feeds.WEBSITE, feed.getWebsite());
+    values.put(Feeds.VELOCITY, feed.getVelocity());
+    Feed.State state = feed.getState();
     if (state != null) {
       values.put(Feeds.STATE, state.name());
     }
-    return values;
-  }
-
-  public static ContentValues convert(final FileFeedFavicon fileFeedFavicon) {
-    ContentValues values = convert((Subscription) fileFeedFavicon.getFeed());
-    values.put(Feeds.FAVICON, fileFeedFavicon.getSource());
     return values;
   }
 
@@ -341,6 +253,17 @@ public final class FeedlyDbUtils {
 
       Entry.Origin stream = entry.getOrigin();
       Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
+
+      String faviconUrl = favicon(feed);
+
+      ContentValues feedCV = convert(feed);
+      feedCV.put(Feeds.FAVICON, faviconUrl);
+      feeds.add(feedCV);
+
+      ContentValues favicon = new ContentValues();
+      favicon.put(Files.URL, faviconUrl);
+      files.add(favicon);
+
       feeds.add(convert(feed));
 
       List<Category> cats = entry.getCategories();
@@ -364,23 +287,22 @@ public final class FeedlyDbUtils {
           }
         }
       }
+
+      //extract image urls
+
+      extractImgSrc(files, entry.getSummary());
+      extractImgSrc(files, entry.getContent());
     }
 
-    bulkInsert(contentResolver, Files.CONTENT_URI, files.toArray(new ContentValues[files.size()]));
+    bulkInsert(contentResolver, Files.CONTENT_URI, files);
 
-    bulkInsert(contentResolver, Feeds.CONTENT_URI,
-               feeds.toArray(new ContentValues[feeds.size()]));
-    bulkInsert(contentResolver, Categories.CONTENT_URI,
-               categories.toArray(new ContentValues[categories.size()]));
-    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI,
-               feedsCategories.toArray(new ContentValues[feedsCategories.size()]));
+    bulkInsert(contentResolver, Feeds.CONTENT_URI, feeds);
+    bulkInsert(contentResolver, Categories.CONTENT_URI, categories);
+    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI, feedsCategories);
 
-    bulkInsert(contentResolver, Entries.CONTENT_URI,
-               entries.toArray(new ContentValues[entries.size()]));
-    bulkInsert(contentResolver, Tags.CONTENT_URI,
-               tags.toArray(new ContentValues[tags.size()]));
-    bulkInsert(contentResolver, EntriesTags.CONTENT_URI,
-               entriesTags.toArray(new ContentValues[entriesTags.size()]));
+    bulkInsert(contentResolver, Entries.CONTENT_URI, entries);
+    bulkInsert(contentResolver, Tags.CONTENT_URI, tags);
+    bulkInsert(contentResolver, EntriesTags.CONTENT_URI, entriesTags);
   }
 
   public static void processSubscriptions(final ContentResolver contentResolver,
@@ -391,9 +313,15 @@ public final class FeedlyDbUtils {
     List<ContentValues> files = new ArrayList<ContentValues>(inSubscriptions.size());
 
     for (Subscription subscription : inSubscriptions) {
-      FileFeedFavicon feedFavicon = new FileFeedFavicon(subscription);
-      files.add(convert((Entry.File) feedFavicon));
-      feeds.add(convert(feedFavicon));
+      String faviconUrl = favicon(subscription);
+
+      ContentValues feedCV = convert(subscription);
+      feedCV.put(Feeds.FAVICON, faviconUrl);
+      feeds.add(feedCV);
+
+      ContentValues favicon = new ContentValues();
+      favicon.put(Files.URL, faviconUrl);
+      files.add(favicon);
 
       List<Category> cats = subscription.getCategories();
       if (cats == null) {
@@ -405,19 +333,17 @@ public final class FeedlyDbUtils {
       }
     }
 
-    bulkInsert(contentResolver, Files.CONTENT_URI, files.toArray(new ContentValues[files.size()]));
-
-    bulkInsert(contentResolver, Feeds.CONTENT_URI,
-               feeds.toArray(new ContentValues[feeds.size()]));
-    bulkInsert(contentResolver, Categories.CONTENT_URI,
-               categories.toArray(new ContentValues[categories.size()]));
-    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI,
-               feedsCategories.toArray(new ContentValues[feedsCategories.size()]));
+    bulkInsert(contentResolver, Files.CONTENT_URI, files);
+    bulkInsert(contentResolver, Feeds.CONTENT_URI, feeds);
+    bulkInsert(contentResolver, Categories.CONTENT_URI, categories);
+    bulkInsert(contentResolver, FeedsCategories.CONTENT_URI, feedsCategories);
   }
 
   protected static void bulkInsert(final ContentResolver contentResolver, final Uri uri,
-                                   final ContentValues[] values) {
-    if (values != null) { contentResolver.bulkInsert(uri, values); }
+                                   final Collection<ContentValues> values) {
+    if (values != null) {
+      contentResolver.bulkInsert(uri, values.toArray(new ContentValues[values.size()]));
+    }
   }
 
   public static void create(final SQLiteDatabase db) {
@@ -540,15 +466,31 @@ public final class FeedlyDbUtils {
                + EntriesTags.TBL_NAME + "." + EntriesTags.ENTRY_ID);
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Files.TBL_NAME + "("
-               + Files.URL + " TEXT PRIMARY KEY NOT NULL,"
-               + Files.MIME + " TEXT, "
-               + Files.FILENAME + " TEXT, "
+               + Files.URL + " TEXT PRIMARY KEY NOT NULL ON CONFLICT IGNORE,"
+               + Files.MIME + " TEXT,"
+               + Files.FILENAME + " TEXT,"
                + Files.CREATED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)");
 
-    db.execSQL("CREATE INDEX idx_" + Files.TBL_NAME + "_" + Files.URL
-               + " ON " + Files.TBL_NAME + "(" + Files.URL + ")");
     db.execSQL("CREATE INDEX idx_" + Files.TBL_NAME + "_" + Files.FILENAME
                + " ON " + Files.TBL_NAME + "(" + Files.FILENAME + ")");
+
+//    db.execSQL("CREATE TABLE IF NOT EXISTS " + EntriesFiles.TBL_NAME + "("
+//               + EntriesFiles.ENTRY_ID + " TEXT,"
+//               + EntriesFiles.FILE_ID + " TEXT,"
+//               + "PRIMARY KEY(" + EntriesFiles.ENTRY_ID + ',' + EntriesFiles.FILE_ID
+//               + ") ON CONFLICT IGNORE,"
+//               + "FOREIGN KEY(" + EntriesFiles.ENTRY_ID + ") REFERENCES "
+//               + Entries.TBL_NAME + "(" + Entries.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+//               + "FOREIGN KEY(" + EntriesFiles.FILE_ID + ") REFERENCES "
+//               + Files.TBL_NAME + "(" + Files.ID + ") ON UPDATE CASCADE ON DELETE CASCADE)");
+//
+//    db.execSQL("CREATE INDEX idx_" + EntriesFiles.TBL_NAME + "_" + EntriesFiles.ENTRY_ID
+//               + " ON " + EntriesFiles.TBL_NAME + "(" + EntriesFiles.ENTRY_ID + ")");
+//
+//    db.execSQL("CREATE VIEW " + FilesByEntry.TBL_NAME + " AS "
+//               + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + EntriesFiles.TBL_NAME
+//               + " ON " + Entries.TBL_NAME + "." + Entries.ID + "="
+//               + EntriesFiles.TBL_NAME + "." + EntriesFiles.ENTRY_ID);
   }
 
   public static void dropAll(final SQLiteDatabase db) {
@@ -558,6 +500,7 @@ public final class FeedlyDbUtils {
 //    FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
     db.execSQL("DROP TABLE IF EXISTS '" + FeedsCategories.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + EntriesTags.TBL_NAME + "'");
+    db.execSQL("DROP TABLE IF EXISTS '" + EntriesFiles.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + Entries.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + Categories.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + Feeds.TBL_NAME + "'");
@@ -582,6 +525,32 @@ public final class FeedlyDbUtils {
     }
   }
 
+  public final static Pattern IMG_SRC_PATTERN = Pattern.compile("<img[^>]*src=[\"']([^\"^']*)",
+                                                                Pattern.CASE_INSENSITIVE);
+
+  public final static void extractImgSrc(final Collection<ContentValues> outFiles,
+                                         final Entry.Content content) {
+    if (content == null || content.getContent() == null) {
+      return;
+    }
+
+    final String contentStr = content.getContent();
+    if (contentStr == null) {
+      return;
+    }
+
+    Matcher m = IMG_SRC_PATTERN.matcher(content.getContent());
+    if (!m.find()) {
+      return;
+    }
+
+    do {
+      ContentValues values = new ContentValues(2);
+      values.put(Files.URL, m.group(1));
+      outFiles.add(values);
+    } while (m.find());
+  }
+
   /**
    * Merges two String arrays, nullsafe
    *
@@ -603,25 +572,17 @@ public final class FeedlyDbUtils {
     return tmpProjection;
   }
 
+  public static final String favicon(final Feed feed) {
+    String url = feed.getWebsite();
+    if (url == null) {
+      url = feed.getUrl();
+    }
+    return FAVICON_TPL + Uri.parse(url).getHost();
+  }
+
+  private static final String FAVICON_TPL = "http://plus.google.com/_/favicon?alt=feed&domain=";
+
   public static final char SEPARATOR = '\t';
 
   private FeedlyDbUtils() {}
-
-
-  static class FileFeedFavicon implements Entry.File {
-
-    public Feed getFeed() { return feed; }
-
-    @Override
-    public String getSource() { return TEMPLATE + feed.getWebsite().replace("/", "%2F"); }
-
-    @Override
-    public String getMime() { return "image/x-icon"; }
-
-    private Feed feed;
-
-    public FileFeedFavicon(final Feed feed) { this.feed = feed; }
-
-    private static final String TEMPLATE = "http://plus.google.com/_/favicon?alt=feed&domain=";
-  }
 }

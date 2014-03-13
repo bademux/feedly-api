@@ -39,8 +39,10 @@ package org.github.bademux.feedly.andrss.helpers;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.text.Html;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
@@ -49,6 +51,8 @@ import android.widget.TextView;
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.util.Date;
 
@@ -65,7 +69,7 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
     mDateFormat = android.text.format.DateFormat.getDateFormat(context);
     setViewBinder(createBinder());
     mQueryHandler = queryHandler;
-
+    mContext = context;
     token = mQueryHandler.addQueryListener(this);
   }
 
@@ -80,8 +84,9 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   }
 
   @Override
-  public void onQueryComplete(final int token, final Object cookie,
-                              final Cursor cursor) { changeCursor(cursor); }
+  public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
+    changeCursor(cursor);
+  }
 
   public ViewBinder createBinder() {
     return new ViewBinder() {
@@ -89,32 +94,41 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
         switch (view.getId()) {
           case R.id.content_list_visual:
-            String uriString = cursor.getString(columnIndex);
-            if (uriString != null) {
-              Uri uri = Files.CONTENT_URI.buildUpon().appendPath(uriString).build();
-              ((ImageView) view).setImageURI(uri);
-            }
-            return true;
+            handleVisual((ImageView) view, cursor.getString(columnIndex)); return true;
           case R.id.content_list_summary:
-            String text = cursor.getString(columnIndex);
-            if (text != null) {
-              ((TextView) view).setText(Html.fromHtml(text) + "...");
-            }
-            return true;
+            handleSummary((TextView) view, cursor.getString(columnIndex)); return true;
           case R.id.content_list_meta_crawled:
-            Long timestamp = cursor.getLong(columnIndex);
-            if (timestamp != null) {
-              synchronized (mDateFormat) {
-                ((TextView) view).setText(mDateFormat.format(new Date(timestamp)));
-              }
-            }
-            return true;
+            handleCrawled((TextView) view, cursor.getLong(columnIndex)); return true;
           default:
         }
-
         return false;
       }
     };
+  }
+
+  protected void handleCrawled(final TextView view, final Long timestamp) {
+    if (timestamp == null) {
+      return;
+    }
+    synchronized (mDateFormat) {
+      view.setText(mDateFormat.format(new Date(timestamp)));
+    }
+  }
+
+  protected void handleSummary(final TextView view, final String text) {
+    if (text == null) {
+      return;
+    }
+    view.setText(Html.fromHtml(text, imageGetter, null));
+  }
+
+  protected void handleVisual(final ImageView view, final String source) {
+    Drawable d = imageGetter.getDrawable(source);
+    if (d == null) {
+      view.setVisibility(View.GONE);
+    } else {
+      view.setImageDrawable(d);
+    }
   }
 
 
@@ -122,10 +136,32 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
 
   private final DateFormat mDateFormat;
 
+  private final Context mContext;
+
   private int token;
+
+  private final Html.ImageGetter imageGetter = new Html.ImageGetter() {
+    @Override
+    public synchronized Drawable getDrawable(final String source) {
+      if (source != null) {
+        return null;
+      }
+
+      Uri uri = Files.CONTENT_URI.buildUpon().appendPath(source).build();
+      try {
+        InputStream stream = mContext.getContentResolver().openInputStream(uri);
+        return Drawable.createFromStream(stream, null);
+      } catch (FileNotFoundException e) {
+        Log.e(TAG, "content_list_visual is missing", e);
+      }
+
+      return null;
+    }
+  };
+
   private static final String[] FROM = new String[]{Entries.TITLE,
                                                     Entries.VISUAL_URL,
-                                                    "substr(" + Entries.SUMMARY + ",1,150)",
+                                                    Entries.SUMMARY,
                                                     Entries.ENGAGEMENT,
                                                     Entries.ORIGIN_TITLE,
                                                     Entries.AUTHOR,
@@ -139,4 +175,7 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
                                             R.id.content_list_meta_src_title,
                                             R.id.content_list_meta_author,
                                             R.id.content_list_meta_crawled};
+
+
+  static final String TAG = "FeedlyContentAdapter";
 }

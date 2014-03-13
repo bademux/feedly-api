@@ -76,48 +76,59 @@ public class FeedlyCacheService extends IntentService {
       return;
     }
     switch (action) {
-      case ACTION_FETCH_SUBSCRIPTION:
-        List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
-        if (subscriptions != null) {
-          processSubscriptions(contentResolver, subscriptions);
-        }
+      case ACTION_FETCH_SUBSCRIPTION: fetchSubscriptions(contentResolver);
       case ServiceManager.ACTION_REFRESH:
-      case ACTION_FETCH_ENTRIES:
-        Feedly service = mFeedlyUtil.service();
-        Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
-        EntriesResponse result = request.execute();
-        if (result != null) {
-          processEntries(contentResolver, result.items());
-        }
-      case ACTION_DOWNLOAD:        //Get all not cached files
-        Uri notcachedUri = Files.CONTENT_URI.buildUpon().appendPath("notcached").build();
-        Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
-        if (c.moveToFirst()) {
-          DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-          do {
-            long fileId = c.getLong(c.getColumnIndex(Files.ID));
-            Uri uri = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
-            Uri destinationUri = Uri.fromFile(getExternalCacheDir()).buildUpon()
-                                    .appendPath("file-" + fileId).build();
-            dm.enqueue(new Request(uri).setDestinationUri(destinationUri)
-                                       .setVisibleInDownloadsUi(false)
-                                       .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
-          } while (c.moveToNext());
-        }
-        break;
-      case ACTION_DOWNLOAD_COMPLETED:
-        String url = intent.getStringExtra(FeedlyCacheService.EXTRA_URL);
-        ContentValues values = new ContentValues(2);
-        values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
-        values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
-        Uri updateUri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
-        contentResolver.update(updateUri, values, null, null);
-        break;
+      case ACTION_FETCH_ENTRIES: fetchEntries(contentResolver);
+      case ACTION_DOWNLOAD: download(contentResolver); break;
+      case ACTION_DOWNLOAD_COMPLETED: completeDownload(intent, contentResolver); break;
       default:
         Log.d(TAG, "unknown action" + action);
     }
   }
 
+  protected void fetchSubscriptions(final ContentResolver contentResolver) throws IOException {
+    List<Subscription> subscriptions = mFeedlyUtil.service().subscriptions().list().execute();
+    if (subscriptions != null) {
+      processSubscriptions(contentResolver, subscriptions);
+    }
+  }
+
+  protected void fetchEntries(final ContentResolver contentResolver) throws IOException {
+    Feedly service = mFeedlyUtil.service();
+    Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
+    EntriesResponse result = request.execute();
+    if (result != null) {
+      processEntries(contentResolver, result.items());
+    }
+  }
+
+  protected void download(final ContentResolver contentResolver) {
+    //Get all files that were not cached
+    Uri notcachedUri = Files.CONTENT_URI.buildUpon().appendPath("notcached").build();
+    Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
+    if (c.moveToFirst()) {
+      DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+
+      do {
+        Uri srcUri = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
+
+        String fileId = String.valueOf(c.getLong(c.getColumnIndex(Files.ID)));
+        Uri destUri = Uri.fromFile(getExternalCacheDir()).buildUpon().appendPath(fileId).build();
+        dm.enqueue(new Request(srcUri).setDestinationUri(destUri)
+                                      .setVisibleInDownloadsUi(false)
+                                      .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
+      } while (c.moveToNext());
+    }
+  }
+
+  protected void completeDownload(final Intent intent, final ContentResolver contentResolver) {
+    String url = intent.getStringExtra(FeedlyCacheService.EXTRA_URL);
+    ContentValues values = new ContentValues(2);
+    values.put(Files.FILENAME, intent.getStringExtra(FeedlyCacheService.EXTRA_FILENAME));
+    values.put(Files.MIME, intent.getStringExtra(FeedlyCacheService.EXTRA_MIME));
+    Uri updateUri = Files.CONTENT_URI.buildUpon().appendPath(url).build();
+    contentResolver.update(updateUri, values, null, null);
+  }
 
   public FeedlyCacheService() { super(TAG); }
 

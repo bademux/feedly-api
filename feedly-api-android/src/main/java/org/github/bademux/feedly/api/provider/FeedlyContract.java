@@ -51,7 +51,7 @@ public final class FeedlyContract {
     private Categories() {}
   }
 
-  /** Class that represents a Feed - Category mappings - used only internaly */
+  /** Class that represents a Feed - Category mappings - used internaly */
   public static final class FeedsCategories implements FeedsCategoriesColumns {
 
     public static final String TBL_NAME = "feeds_categories";
@@ -62,7 +62,7 @@ public final class FeedlyContract {
     private FeedsCategories() {}
   }
 
-  /** Class that represents a Entry - Tag mappings - used only internaly */
+  /** Class that represents a Entry - Tag mappings - used internaly */
   public static final class EntriesTags implements EntriesTagsColumns {
 
     public static final String TBL_NAME = "entries_tags";
@@ -129,7 +129,7 @@ public final class FeedlyContract {
   }
 
   /** Class that represents a Files */
-  public static final class Files implements FileStats {
+  public static final class Files implements FilesColumns {
 
     public static final String TBL_NAME = "files";
 
@@ -137,6 +137,30 @@ public final class FeedlyContract {
 
     /** This utility class cannot be instantiated */
     private Files() {}
+  }
+
+
+  /** Class that represents a EntriesByTag list - sql View */
+  public static final class FilesByEntry implements FilesColumns, EntriesFilesColumns {
+
+    public static final String TBL_NAME = "files_by_entry";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private FilesByEntry() {}
+  }
+
+
+  /** Class that represents a Entry - Files mappings - used internaly */
+  public static final class EntriesFiles implements EntriesFilesColumns {
+
+    public static final String TBL_NAME = "entries_files";
+
+    public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, TBL_NAME);
+
+    /** This utility class cannot be instantiated */
+    private EntriesFiles() {}
   }
 
   protected interface FeedsCategoriesColumns {
@@ -149,6 +173,10 @@ public final class FeedlyContract {
     public static final String ENTRY_ID = "entry_id", TAG_ID = "tag_id";
   }
 
+  protected interface EntriesFilesColumns {
+
+    public static final String ENTRY_ID = "entry_id", FILE_ID = "file_id";
+  }
 
   protected interface FeedsColumns {
 
@@ -199,9 +227,9 @@ public final class FeedlyContract {
     public static final String ENCLOSURE_MIMES = "enclosure_mimes";
   }
 
-  protected interface FileStats {
+  protected interface FilesColumns {
 
-    public static final String ID = "_id";
+    public static final String ID = "rowid";
     public static final String URL = "url";
     public static final String MIME = "mime";
     public static final String FILENAME = "filename";

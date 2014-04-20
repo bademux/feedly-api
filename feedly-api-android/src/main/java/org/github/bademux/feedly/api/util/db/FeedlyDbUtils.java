@@ -38,6 +38,7 @@ import org.github.bademux.feedly.api.model.Tag;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +46,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static android.webkit.URLUtil.isNetworkUrl;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
@@ -57,6 +61,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.FilesByEntry;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
 
 public final class FeedlyDbUtils {
@@ -204,6 +209,13 @@ public final class FeedlyDbUtils {
     return values;
   }
 
+  public static ContentValues convert(final Entry entry, final Entry.File file) {
+    ContentValues values = new ContentValues();
+    values.put(EntriesFiles.ENTRY_ID, entry.getId());
+    values.put(EntriesFiles.FILE_URL, file.getSource());
+    return values;
+  }
+
   static final Comparator<ContentValues> ENTRIES_TAGS_CMP = new Comparator<ContentValues>() {
     @Override
     public int compare(final ContentValues lhs, final ContentValues rhs) {
@@ -212,6 +224,7 @@ public final class FeedlyDbUtils {
       return q ? 0 : 1;
     }
   };
+
   static final Comparator<ContentValues> FEEDS_CATEGORIES_CMP
       = new Comparator<ContentValues>() {
     @Override
@@ -221,6 +234,7 @@ public final class FeedlyDbUtils {
       return q ? 0 : 1;
     }
   };
+
   static final Comparator<ContentValues> ENTITY_CMP = new Comparator<ContentValues>() {
     @Override
     public int compare(final ContentValues lhs, final ContentValues rhs) {
@@ -228,8 +242,24 @@ public final class FeedlyDbUtils {
     }
   };
 
-  public static void processEntries(final ContentResolver contentResolver,
-                                    final Collection<Entry> inEntries) {
+  static final Comparator<ContentValues> FILES_CMP = new Comparator<ContentValues>() {
+    @Override
+    public int compare(final ContentValues lhs, final ContentValues rhs) {
+      return lhs.get(Files.URL).equals(rhs.get(Files.URL)) ? 0 : 1;
+    }
+  };
+
+  static final Comparator<ContentValues> ENTRIES_FILES__CMP = new Comparator<ContentValues>() {
+    @Override
+    public int compare(final ContentValues lhs, final ContentValues rhs) {
+      boolean q = lhs.get(EntriesFiles.ENTRY_ID).equals(rhs.get(EntriesFiles.ENTRY_ID))
+                  && lhs.get(EntriesFiles.FILE_URL).equals(rhs.get(EntriesFiles.FILE_URL));
+      return q ? 0 : 1;
+    }
+  };
+
+  public static void processEntries(@Nonnull final ContentResolver contentResolver,
+                                    @Nonnull final Collection<Entry> inEntries) {
 
     Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
@@ -238,7 +268,8 @@ public final class FeedlyDbUtils {
     Set<ContentValues> entries = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> tags = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> entriesTags = new TreeSet<ContentValues>(ENTRIES_TAGS_CMP);
-    List<ContentValues> files = new ArrayList<ContentValues>();
+    Set<ContentValues> files = new TreeSet<ContentValues>(FILES_CMP);
+    Set<ContentValues> entriesFiles = new TreeSet<ContentValues>(ENTRIES_FILES__CMP);
 
     for (Entry entry : inEntries) {
       entries.add(convert(entry));
@@ -277,6 +308,7 @@ public final class FeedlyDbUtils {
       Entry.Visual visual = entry.getVisual();
       if (visual != null && isNetworkUrl(visual.getSource())) {
         files.add(convert(visual));
+        entriesFiles.add(convert(entry, visual));
       }
 
       List<Entry.Enclosure> enclosures = entry.getEnclosure();
@@ -284,14 +316,20 @@ public final class FeedlyDbUtils {
         for (Entry.Enclosure enclosure : enclosures) {
           if (isNetworkUrl(enclosure.getSource())) {
             files.add(convert(enclosure));
+            entriesFiles.add(convert(entry, enclosure));
           }
         }
       }
 
       //extract image urls
-
-      extractImgSrc(files, entry.getSummary());
-      extractImgSrc(files, entry.getContent());
+      for (Entry.File img : extractImgSrc(entry.getSummary())) {
+        files.add(convert(img));
+        entriesFiles.add(convert(entry, img));
+      }
+      for (Entry.File img : extractImgSrc(entry.getContent())) {
+        files.add(convert(img));
+        entriesFiles.add(convert(entry, img));
+      }
     }
 
     bulkInsert(contentResolver, Files.CONTENT_URI, files);
@@ -303,10 +341,11 @@ public final class FeedlyDbUtils {
     bulkInsert(contentResolver, Entries.CONTENT_URI, entries);
     bulkInsert(contentResolver, Tags.CONTENT_URI, tags);
     bulkInsert(contentResolver, EntriesTags.CONTENT_URI, entriesTags);
+    bulkInsert(contentResolver, EntriesFiles.CONTENT_URI, entriesFiles);
   }
 
-  public static void processSubscriptions(final ContentResolver contentResolver,
-                                          final Collection<Subscription> inSubscriptions) {
+  public static void processSubscriptions(@Nonnull final ContentResolver contentResolver,
+                                          @Nonnull final Collection<Subscription> inSubscriptions) {
     List<ContentValues> feeds = new ArrayList<ContentValues>(inSubscriptions.size());
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
@@ -339,8 +378,9 @@ public final class FeedlyDbUtils {
     bulkInsert(contentResolver, FeedsCategories.CONTENT_URI, feedsCategories);
   }
 
-  protected static void bulkInsert(final ContentResolver contentResolver, final Uri uri,
-                                   final Collection<ContentValues> values) {
+  protected static void bulkInsert(@Nonnull final ContentResolver contentResolver,
+                                   @Nonnull final Uri uri,
+                                   @Nullable Collection<ContentValues> values) {
     if (values != null) {
       contentResolver.bulkInsert(uri, values.toArray(new ContentValues[values.size()]));
     }
@@ -474,29 +514,32 @@ public final class FeedlyDbUtils {
     db.execSQL("CREATE INDEX idx_" + Files.TBL_NAME + "_" + Files.FILENAME
                + " ON " + Files.TBL_NAME + "(" + Files.FILENAME + ")");
 
-//    db.execSQL("CREATE TABLE IF NOT EXISTS " + EntriesFiles.TBL_NAME + "("
-//               + EntriesFiles.ENTRY_ID + " TEXT,"
-//               + EntriesFiles.FILE_ID + " TEXT,"
-//               + "PRIMARY KEY(" + EntriesFiles.ENTRY_ID + ',' + EntriesFiles.FILE_ID
-//               + ") ON CONFLICT IGNORE,"
-//               + "FOREIGN KEY(" + EntriesFiles.ENTRY_ID + ") REFERENCES "
-//               + Entries.TBL_NAME + "(" + Entries.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
-//               + "FOREIGN KEY(" + EntriesFiles.FILE_ID + ") REFERENCES "
-//               + Files.TBL_NAME + "(" + Files.ID + ") ON UPDATE CASCADE ON DELETE CASCADE)");
-//
-//    db.execSQL("CREATE INDEX idx_" + EntriesFiles.TBL_NAME + "_" + EntriesFiles.ENTRY_ID
-//               + " ON " + EntriesFiles.TBL_NAME + "(" + EntriesFiles.ENTRY_ID + ")");
-//
-//    db.execSQL("CREATE VIEW " + FilesByEntry.TBL_NAME + " AS "
-//               + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + EntriesFiles.TBL_NAME
-//               + " ON " + Entries.TBL_NAME + "." + Entries.ID + "="
-//               + EntriesFiles.TBL_NAME + "." + EntriesFiles.ENTRY_ID);
+    db.execSQL("CREATE TABLE IF NOT EXISTS " + EntriesFiles.TBL_NAME + "("
+               + EntriesFiles.ENTRY_ID + " TEXT,"
+               + EntriesFiles.FILE_URL + " TEXT,"
+               + "PRIMARY KEY(" + EntriesFiles.ENTRY_ID + ',' + EntriesFiles.FILE_URL
+               + ") ON CONFLICT IGNORE,"
+               + "FOREIGN KEY(" + EntriesFiles.ENTRY_ID + ") REFERENCES "
+               + Entries.TBL_NAME + "(" + Entries.ID + ") ON UPDATE CASCADE ON DELETE CASCADE,"
+               + "FOREIGN KEY(" + EntriesFiles.FILE_URL + ") REFERENCES "
+               + Files.TBL_NAME + "(" + Files.URL + ") ON UPDATE CASCADE ON DELETE CASCADE)");
+
+    db.execSQL("CREATE INDEX idx_" + EntriesFiles.TBL_NAME + "_" + EntriesFiles.ENTRY_ID
+               + " ON " + EntriesFiles.TBL_NAME + "(" + EntriesFiles.ENTRY_ID + ")");
+
+    db.execSQL("CREATE INDEX idx_" + EntriesFiles.TBL_NAME + "_" + EntriesFiles.FILE_URL
+               + " ON " + EntriesFiles.FILE_URL + "(" + EntriesFiles.FILE_URL + ")");
+
+    db.execSQL("CREATE VIEW " + FilesByEntry.TBL_NAME + " AS "
+               + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + EntriesFiles.TBL_NAME
+               + " ON " + Entries.TBL_NAME + "." + Entries.ID + "="
+               + EntriesFiles.TBL_NAME + "." + EntriesFiles.ENTRY_ID);
   }
 
-  public static void dropAll(final SQLiteDatabase db) {
+  public static void dropAll(@Nonnull final SQLiteDatabase db) {
     drop(db, "index", "name NOT LIKE 'sqlite_autoindex_%'");
 
-    //TODO: preserve order (dependency)
+    //TODO: preserve order (relations)
 //    FeedlyDbUtils.drop(db, "table", "name != 'android_metadata'");
     db.execSQL("DROP TABLE IF EXISTS '" + FeedsCategories.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + EntriesTags.TBL_NAME + "'");
@@ -506,6 +549,7 @@ public final class FeedlyDbUtils {
     db.execSQL("DROP TABLE IF EXISTS '" + Feeds.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + Tags.TBL_NAME + "'");
     db.execSQL("DROP TABLE IF EXISTS '" + Files.TBL_NAME + "'");
+    db.execSQL("DROP TABLE IF EXISTS '" + EntriesFiles.TBL_NAME + "'");
 
     drop(db, "view", null);
   }
@@ -528,27 +572,35 @@ public final class FeedlyDbUtils {
   public final static Pattern IMG_SRC_PATTERN = Pattern.compile("<img[^>]*src=[\"']([^\"^']*)",
                                                                 Pattern.CASE_INSENSITIVE);
 
-  public final static void extractImgSrc(final Collection<ContentValues> outFiles,
-                                         final Entry.Content content) {
-    if (content == null || content.getContent() == null) {
-      return;
+  public final static Collection<Entry.File> extractImgSrc(@Nullable final Entry.Content content) {
+    if (content == null) {
+      return Collections.emptyList();
     }
 
     final String contentStr = content.getContent();
-    if (contentStr == null) {
-      return;
+    if (Strings.isNullOrEmpty(contentStr)) {
+      return Collections.emptyList();
     }
 
-    Matcher m = IMG_SRC_PATTERN.matcher(content.getContent());
+    Matcher m = IMG_SRC_PATTERN.matcher(contentStr);
     if (!m.find()) {
-      return;
+      return Collections.emptyList();
     }
-
+    List<Entry.File> imgs = new ArrayList<Entry.File>();
     do {
-      ContentValues values = new ContentValues(2);
-      values.put(Files.URL, m.group(1));
-      outFiles.add(values);
+      final String url = m.group(1);
+      if (!Strings.isNullOrEmpty(url)) {
+        imgs.add(new Entry.File() {
+          @Override
+          public String getSource() { return url; }
+
+          @Override
+          public String getMime() { return null; }
+        });
+      }
     } while (m.find());
+
+    return imgs;
   }
 
   /**
@@ -580,7 +632,7 @@ public final class FeedlyDbUtils {
     return FAVICON_TPL + Uri.parse(url).getHost();
   }
 
-  private static final String FAVICON_TPL = "http://plus.google.com/_/favicon?alt=feed&domain=";
+  public static final String FAVICON_TPL = "http://plus.google.com/_/favicon?alt=feed&domain=";
 
   public static final char SEPARATOR = '\t';
 

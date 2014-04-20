@@ -33,6 +33,7 @@ import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
+import org.github.bademux.feedly.provider.FeedlyCacheProvider;
 
 import java.io.IOException;
 import java.util.List;
@@ -104,17 +105,16 @@ public class FeedlyCacheService extends IntentService {
 
   protected void download(final ContentResolver contentResolver) {
     //Get all files that were not cached
-    Uri notcachedUri = Files.CONTENT_URI.buildUpon().appendPath("notcached").build();
+    Uri notcachedUri = Files.CONTENT_URI.buildUpon()
+                                        .appendPath(FeedlyCacheProvider.NOTCACHED).build();
     Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
     if (c.moveToFirst()) {
       DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-
+      String cacheDir = "file://" + FeedlyCacheProvider.getCacheDir(getApplicationContext()) + '/';
       do {
         Uri srcUri = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
-
         String fileId = String.valueOf(c.getLong(c.getColumnIndex(Files.ID)));
-        Uri destUri = Uri.fromFile(getExternalCacheDir()).buildUpon().appendPath(fileId).build();
-        dm.enqueue(new Request(srcUri).setDestinationUri(destUri)
+        dm.enqueue(new Request(srcUri).setDestinationUri(Uri.parse(cacheDir + fileId))
                                       .setVisibleInDownloadsUi(false)
                                       .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
       } while (c.moveToNext());

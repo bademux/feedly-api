@@ -175,7 +175,7 @@ public final class FeedlyContract {
 
   protected interface EntriesFilesColumns {
 
-    public static final String ENTRY_ID = "entry_id", FILE_ID = "file_id";
+    public static final String ENTRY_ID = "entry_id", FILE_URL = "file_url";
   }
 
   protected interface FeedsColumns {

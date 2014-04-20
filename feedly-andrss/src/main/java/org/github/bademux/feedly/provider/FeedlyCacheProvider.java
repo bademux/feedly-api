@@ -30,6 +30,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -48,6 +49,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.Categories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByTag;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesFiles;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesTags;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCategory;
@@ -58,6 +60,8 @@ import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyCacheProvider extends ContentProvider {
 
+  public static final String NOTCACHED = "NOTCACHED";
+
   private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
   static {
@@ -65,6 +69,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, Entries.TBL_NAME, Code.ENTRIES);
     URI_MATCHER.addURI(AUTHORITY, EntriesByTag.TBL_NAME + "/*", Code.ENTRIES_BY_TAG);
     URI_MATCHER.addURI(AUTHORITY, EntriesByCategory.TBL_NAME + "/*", Code.ENTRIES_BY_CATEGORY);
+    URI_MATCHER.addURI(AUTHORITY, EntriesFiles.TBL_NAME, Code.ENTRIES_FILES);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
     URI_MATCHER.addURI(AUTHORITY, FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
@@ -74,7 +79,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
-    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/notcached", Code.FILE_NOT_CACHED);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/" + NOTCACHED, Code.FILE_NOT_CACHED);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/#", Code.FILE_BY_ID);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/*", Code.FILE);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME, Code.FILES);
@@ -166,6 +171,8 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.insertWithOnConflict(EntriesTags.TBL_NAME, null, values, CONFLICT_IGNORE);
       case Code.FILES:
         return db.insertWithOnConflict(Files.TBL_NAME, null, values, CONFLICT_IGNORE);
+      case Code.ENTRIES_FILES:
+        return db.insertWithOnConflict(EntriesFiles.TBL_NAME, null, values, CONFLICT_IGNORE);
       case UriMatcher.NO_MATCH:
         throw new UnsupportedOperationException("Unmatched Uri");
       default:
@@ -251,17 +258,21 @@ public class FeedlyCacheProvider extends ContentProvider {
   }
 
   protected Cursor getCursorForFile(final Uri uri) {
-    final Cursor c;
     switch (URI_MATCHER.match(uri)) {
+      case Code.FILE_BY_ID:
       case Code.FILE:
-        String cacheDir = getContext().getExternalCacheDir().getAbsolutePath();
-        c = query(uri, new String[]{"('" + cacheDir + "/file-' || rowid) as _data"},
-                  null, null, null);
-        break;
+        return query(uri, new String[]{"('" + getCacheDir(getContext()) + "/' || rowid) as _data"},
+                     null, null, null);
       default:
         throw new UnsupportedOperationException("Unsupported Uri " + uri);
     }
-    return c;
+  }
+
+  public static final String getCacheDir(final Context context) {
+    if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+      throw new RuntimeException("External media is not mounted");
+    }
+    return context.getExternalCacheDir().getAbsolutePath();
   }
 
   /**
@@ -382,10 +393,15 @@ public class FeedlyCacheProvider extends ContentProvider {
       onUpgrade(db, oldVersion, newVersion);
     }
 
+    protected final static String getFilesDir(Context context) {
+      if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+        throw new RuntimeException("External media is not mounted");
+      }
+      return context.getExternalFilesDir(null).getAbsolutePath();
+    }
 
     public DatabaseHelper(final Context context) {
-      super(context, context.getExternalFilesDir(null).getAbsolutePath() + '/' + DB_NAME,
-            null, VERSION);
+      super(context, getFilesDir(context) + '/' + DB_NAME, null, VERSION);
     }
 
     private static final String DB_NAME = "feedly_cache.db";
@@ -402,7 +418,8 @@ public class FeedlyCacheProvider extends ContentProvider {
     static final int CATEGORIES = 200, CATEGORY = 201;
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;
-    static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503;
+    static final int ENTRIES = 500, ENTRY = 501, ENTRIES_BY_TAG = 502, ENTRIES_BY_CATEGORY = 503,
+        ENTRIES_FILES = 504;
     static final int FILES = 600, FILE = 601, FILE_BY_ID = 602, FILE_NOT_CACHED = 603;
   }
 }

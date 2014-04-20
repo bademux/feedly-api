@@ -52,9 +52,12 @@ import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.util.db.BackgroundQueryHandler;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
 import java.util.Date;
+
+import javax.annotation.Nullable;
 
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.EntriesByCategory;
@@ -142,17 +145,24 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
 
   private final Html.ImageGetter imageGetter = new Html.ImageGetter() {
     @Override
-    public synchronized Drawable getDrawable(final String source) {
-      if (source != null) {
+    public synchronized Drawable getDrawable(@Nullable final String source) {
+      if (source == null) {
         return null;
       }
 
       Uri uri = Files.CONTENT_URI.buildUpon().appendPath(source).build();
+      InputStream stream = null;
       try {
-        InputStream stream = mContext.getContentResolver().openInputStream(uri);
+        stream = mContext.getContentResolver().openInputStream(uri);
         return Drawable.createFromStream(stream, null);
       } catch (FileNotFoundException e) {
         Log.e(TAG, "content_list_visual is missing", e);
+      } finally {
+        if (stream != null) {
+          try {
+            stream.close();
+          } catch (IOException e) {}
+        }
       }
 
       return null;

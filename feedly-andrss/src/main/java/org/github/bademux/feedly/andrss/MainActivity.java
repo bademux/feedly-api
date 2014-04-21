@@ -103,14 +103,7 @@ public class MainActivity extends Activity
 
   protected void commitFragment() {
     FragmentTransaction transaction = getFragmentManager().beginTransaction();
-    if (isAuthenticated()) {
-      transaction.replace(R.id.container, mListFragment);
-    } else {
-      transaction.replace(R.id.container,
-                          getFragmentManager().findFragmentById(R.layout.fragment_auth_info)
-      );
-    }
-
+    transaction.replace(R.id.container, isAuthenticated() ? mListFragment : new AuthInfoFragment());
     transaction.commit();
   }
 

@@ -241,45 +241,32 @@ public class FeedlyCacheProvider extends ContentProvider {
     }
   }
 
+
   @Override
   public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
-    Cursor c = getCursorForFile(uri);
-    int count = (c != null) ? c.getCount() : 0;
-    if (count != 1) {
-      // If there is not exactly one result, throw an appropriate
-      // exception.
-      if (c != null) {
-        c.close();
-      }
-      if (count == 0) {
-        throw new FileNotFoundException("No entry for " + uri);
-      }
-      throw new FileNotFoundException("Multiple items at " + uri);
-    }
-
-    c.moveToFirst();
-    int i = c.getColumnIndex("_data");
-    String path = (i >= 0 ? c.getString(i) : null);
-    c.close();
-    if (path == null) {
-      throw new FileNotFoundException("Column _data not found.");
-    }
-    File file = new File(path);
-    if(file.exists()){
-      return ParcelFileDescriptor.open(file, parseMode(mode));
-    }
-    return null;
-  }
-
-  protected Cursor getCursorForFile(final Uri uri) {
     switch (URI_MATCHER.match(uri)) {
-      case Code.FILE_BY_ID:
-      case Code.FILE:
-        return query(uri, new String[]{"('" + getCacheDir(getContext()) + "/' || rowid) as _data"},
-                     null, null, null);
       default:
         throw new UnsupportedOperationException("Unsupported Uri: " + uri);
+      case UriMatcher.NO_MATCH:
+        throw new UnsupportedOperationException("Unmatched Uri: " + uri);
+      case Code.FILE_BY_ID: case Code.FILE:
     }
+
+    Cursor c = query(uri, new String[]{Files.ID}, null, null, null);
+
+    File file = null;
+    if (c.moveToFirst()) {
+      file = new File(getCacheDir(getContext()) + "/" + c.getLong(0));
+    }
+    c.close();
+
+    if (file != null && file.exists()) {
+      return ParcelFileDescriptor.open(file, parseMode(mode));
+    } else {
+      Log.e(TAG, "Can't find file '" + (file == null ? "unknown" : file.getAbsolutePath())
+                 + "' for URL " + uri);
+    }
+    return null;
   }
 
   public static final String getCacheDir(final Context context) {

@@ -18,6 +18,7 @@
 
 package org.github.bademux.feedly.service;
 
+import com.google.api.client.repackaged.com.google.common.base.Strings;
 import com.google.api.client.util.IOUtils;
 
 import android.app.DownloadManager;
@@ -32,6 +33,7 @@ import android.util.Log;
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.model.EntriesResponse;
 import org.github.bademux.feedly.api.model.Feed;
+import org.github.bademux.feedly.api.model.Stream;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.github.bademux.feedly.api.service.ServiceManager;
@@ -85,7 +87,11 @@ public class FeedlyCacheService extends IntentService {
     switch (action) {
       case ACTION_FETCH_SUBSCRIPTION: fetchSubscriptions(contentResolver);
       case ServiceManager.ACTION_REFRESH:
-      case ACTION_FETCH_ENTRIES: fetchEntries(contentResolver);
+      case ACTION_FETCH_ENTRIES:
+        String streamId = intent.getStringExtra(EXTRA_STREAM_ID);
+
+        fetchEntries(contentResolver, streamId);
+
       case ACTION_DOWNLOAD: downloadFiles(contentResolver); downloadFavicon(contentResolver); break;
       case ACTION_DOWNLOAD_COMPLETED: completeDownload(intent, contentResolver); break;
       case ACTION_DOWNLOAD_COMPLETED_FAVICON: completeDownloadFav(intent, contentResolver); break;
@@ -101,10 +107,18 @@ public class FeedlyCacheService extends IntentService {
     }
   }
 
-  protected void fetchEntries(final ContentResolver contentResolver) throws IOException {
+  protected void fetchEntries(final ContentResolver contentResolver, final String streamId)
+      throws IOException {
     Feedly service = mFeedlyUtil.service();
-    Feedly.Streams.Contents request = service.streams().contents(service.newCategory(ALL));
-    EntriesResponse result = request.execute();
+    Stream stream = Strings.isNullOrEmpty(streamId) ?
+                    service.newCategory(ALL) :
+                    new Stream() {
+                      @Override
+                      public String getId() { return streamId; }
+                    };
+
+    EntriesResponse result = service.streams().contents(stream).execute();
+
     if (result != null) {
       processEntries(contentResolver, result.items());
     }
@@ -199,6 +213,9 @@ public class FeedlyCacheService extends IntentService {
       "org.github.bademux.feedly.api.service.Subscription";
 
   public final static String ACTION_FETCH_ENTRIES = "org.github.bademux.feedly.api.service.Entries";
+
+  public final static String EXTRA_STREAM_ID =
+      "org.github.bademux.feedly.api.service.EXTRA_STREAM_ID";
 
   protected final static String ACTION_DOWNLOAD = "org.github.bademux.feedly.api.service.Download";
 

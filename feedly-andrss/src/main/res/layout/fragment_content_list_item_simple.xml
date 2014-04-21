@@ -23,9 +23,9 @@
               android:orientation="vertical">
 
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                  android:orientation="horizontal"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content">
+                 android:orientation="horizontal"
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content">
 
         <ImageView android:id="@+id/content_list_visual"
                    android:layout_width="match_parent"
@@ -51,26 +51,31 @@
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content">
 
-
         <TextView android:id="@+id/content_list_meta_read"
                   android:layout_width="wrap_content"
                   android:layout_height="match_parent"
-                  android:textAppearance="?android:attr/textAppearanceSmall"/>
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:singleLine="true"/>
 
         <TextView android:id="@+id/content_list_meta_src_title"
                   android:layout_width="wrap_content"
                   android:layout_height="match_parent"
-                  android:textAppearance="?android:attr/textAppearanceSmall"/>
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:singleLine="true"
+                  android:paddingLeft="2dp"/>
 
         <TextView android:id="@+id/content_list_meta_author"
                   android:layout_width="wrap_content"
                   android:layout_height="match_parent"
-                  android:textAppearance="?android:attr/textAppearanceSmall"/>
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:singleLine="true"
+                  android:paddingLeft="2dp"/>
 
         <TextView android:id="@+id/content_list_meta_crawled"
                   android:layout_width="wrap_content"
                   android:layout_height="match_parent"
-                  android:textAppearance="?android:attr/textAppearanceSmall"/>
-
+                  android:textAppearance="?android:attr/textAppearanceSmall"
+                  android:singleLine="true"
+                  android:paddingLeft="2dp"/>
     </LinearLayout>
 </LinearLayout>

@@ -93,12 +93,12 @@ public class MainActivity extends Activity
 
   @Override
   public void onGroupSelected(String groupUrl) {
-    mListFragment.getListAdapter().startQueryOnCategory(groupUrl);
+    mListFragment.startQueryOnCategory(groupUrl);
   }
 
   @Override
   public void onChildSelected(String childUrl) {
-    mListFragment.getListAdapter().startQueryOnFeed(childUrl);
+    mListFragment.startQueryOnFeed(childUrl);
   }
 
   protected void commitFragment() {
@@ -156,6 +156,18 @@ public class MainActivity extends Activity
 
   @Override
   public void onRefreshList() { onRefresh(FeedlyCacheService.ACTION_FETCH_ENTRIES); }
+
+  @Override
+  public void onLoadMore() {
+    if (mFeedlyUtil.isAuthenticated()) {
+      Intent intent = new Intent(FeedlyCacheService.ACTION_FETCH_ENTRIES,
+                                 null, this, FeedlyCacheService.class);
+      intent.putExtra(FeedlyCacheService.EXTRA_STREAM_ID, mNavigationFragment.getSelected());
+      startService(intent);
+    } else {
+      Toast.makeText(this, R.string.msg_login, Toast.LENGTH_LONG).show();
+    }
+  }
 
   @Override
   public void onRefreshMenu() { onRefresh(FeedlyCacheService.ACTION_FETCH_SUBSCRIPTION); }

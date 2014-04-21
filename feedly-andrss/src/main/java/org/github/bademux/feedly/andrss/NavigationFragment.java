@@ -109,7 +109,7 @@ public class NavigationFragment extends Fragment
 //    mListView.setItemChecked(mCurrentSelectedPosition, true);
 
     ActionBarPullToRefresh.from(getActivity()).allChildrenArePullable().listener(this)
-        .setup(mPullToRefreshLayout);
+                          .setup(mPullToRefreshLayout);
 
     return mPullToRefreshLayout;
   }
@@ -269,8 +269,8 @@ public class NavigationFragment extends Fragment
   @Override
   public boolean onGroupClick(final ExpandableListView parent, final View v,
                               final int groupPosition, final long id) {
-    String groupId = mAdapter.getCategoryId(groupPosition);
-    mListener.onGroupSelected(groupId);
+    selected = mAdapter.getCategoryId(groupPosition);
+    mListener.onGroupSelected(selected);
     selectItem(getPackedPositionForGroup(groupPosition));
     return true;
   }
@@ -278,11 +278,13 @@ public class NavigationFragment extends Fragment
   @Override
   public boolean onChildClick(final ExpandableListView parent, final View v,
                               final int groupPosition, final int childPosition, final long id) {
-    String childId = mAdapter.getFeedId(groupPosition, childPosition);
-    mListener.onChildSelected(childId);
+    selected = mAdapter.getFeedId(groupPosition, childPosition);
+    mListener.onChildSelected(selected);
     selectItem(getPackedPositionForChild(groupPosition, childPosition));
     return false;
   }
+
+  public String getSelected() { return selected; }
 
   /**
    * Per the navigation drawer design guidelines, updates the action bar to show the global app
@@ -297,14 +299,7 @@ public class NavigationFragment extends Fragment
 
   public NavigationFragment() {}
 
-  /** Remember the position of the selected item. */
-  private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
-
-  /**
-   * Per the design guidelines, you should show the drawer on launch until the user manually
-   * expands it. This shared preference tracks this.
-   */
-  private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
+  private volatile String selected;
 
   /** A pointer to the current callbacks instance (the Activity). */
   private OnFragmentInteractionListener mListener;
@@ -321,6 +316,14 @@ public class NavigationFragment extends Fragment
 
   private FeedlyNavigationAdapter mAdapter;
 
+  /** Remember the position of the selected item. */
+  private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
+
+  /**
+   * Per the design guidelines, you should show the drawer on launch until the user manually
+   * expands it. This shared preference tracks this.
+   */
+  private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
 
   /** Callbacks interface that all activities using this fragment must implement. */
   public static interface OnFragmentInteractionListener {

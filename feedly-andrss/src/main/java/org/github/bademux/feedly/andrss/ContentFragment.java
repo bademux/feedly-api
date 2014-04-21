@@ -20,9 +20,11 @@ package org.github.bademux.feedly.andrss;
 
 import android.app.Activity;
 import android.app.ListFragment;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ListView;
 
 import org.github.bademux.feedly.andrss.helpers.FeedlyContentAdapter;
@@ -45,19 +47,32 @@ public class ContentFragment extends ListFragment implements OnRefreshListener {
     super.onCreate(savedInstanceState);
     MainActivity activity = (MainActivity) getActivity();
     mAdapter = new FeedlyContentAdapter(activity, activity.getAsynchQueryHandler());
-    setListAdapter(mAdapter);
   }
 
   @Override
   public void onViewCreated(View view, Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
 
+    getListView().addFooterView(createLoadMoreButton(view.getContext()));
+    
+    setListAdapter(mAdapter);
+
     // We need to create a PullToRefreshLayout manually
     mPullToRefreshLayout = new PullToRefreshLayout(view.getContext());
 
     ActionBarPullToRefresh.from(getActivity()).insertLayoutInto((ViewGroup) view)
-        .theseChildrenArePullable(getListView(), getListView().getEmptyView())
-        .listener(this).setup(mPullToRefreshLayout);
+                          .theseChildrenArePullable(getListView(), getListView().getEmptyView())
+                          .listener(this).setup(mPullToRefreshLayout);
+  }
+
+  public final Button createLoadMoreButton(final Context context) {
+    Button btnLoadMore = new Button(context);
+    btnLoadMore.setText(R.string.button_loadmore_text);
+    btnLoadMore.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) { mListener.onLoadMore(); }
+    });
+    return btnLoadMore;
   }
 
   @Override
@@ -86,13 +101,12 @@ public class ContentFragment extends ListFragment implements OnRefreshListener {
   @Override
   public void onRefreshStarted(final View view) {
     mListener.onRefreshList();
-    //TODO: cancel refreshbar
     mPullToRefreshLayout.setRefreshComplete();
   }
 
-  @Override
-  public FeedlyContentAdapter getListAdapter() { return mAdapter;  }
+  public void startQueryOnCategory(String groupUrl) { mAdapter.startQueryOnCategory(groupUrl); }
 
+  public void startQueryOnFeed(String childUrl) { mAdapter.startQueryOnFeed(childUrl); }
 
   public ContentFragment() {}
 
@@ -118,5 +132,7 @@ public class ContentFragment extends ListFragment implements OnRefreshListener {
     public void onFragmentInteraction(String id);
 
     public void onRefreshList();
+
+    public void onLoadMore();
   }
 }

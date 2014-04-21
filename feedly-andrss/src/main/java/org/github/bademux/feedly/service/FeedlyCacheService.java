@@ -130,7 +130,7 @@ public class FeedlyCacheService extends IntentService {
                                           new String[]{"MAX(" + Entries.CRAWLED + ")"},
                                           null, null, null, null);
     if (cursor.moveToFirst()) { //fetch latest
-      request.setNewerThan(cursor.getLong(1));
+      request.setNewerThan(cursor.getLong(1) + 1);
     }
     cursor.close();
 
@@ -138,23 +138,24 @@ public class FeedlyCacheService extends IntentService {
   }
 
   private Collection<Entry> execute(final Feedly.Streams.Contents request) {
-    final Collection<Entry> entries = new ArrayList<Entry>();
+    final Collection<Entry> entriesCache = new ArrayList<Entry>();
     do {
       //TODO: for dev purposes
-      if (entries.size() > 20) { break; }
+      if (entriesCache.size() > 20) { break; }
 
       try {
         EntriesResponse result = request.execute();
         request.setContinuation(result.getContinuation());
-        if (result != null && !result.isEmpty()) {
-          entries.addAll(result.items());
+        List<Entry> entries = result.items();
+        if (entries != null && !entries.isEmpty()) {
+          entriesCache.addAll(entries);
         }
       } catch (IOException e) {
         Log.e(TAG, "unknown action", e);
         request.setContinuation(null);
       }
     } while (!isNullOrEmpty(request.getContinuation()));
-    return entries;
+    return entriesCache;
   }
 
   /**

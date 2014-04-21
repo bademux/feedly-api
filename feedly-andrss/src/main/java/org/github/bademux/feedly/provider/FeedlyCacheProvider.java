@@ -30,10 +30,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import org.github.bademux.feedly.api.service.Utils;
 import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 
 import java.io.File;
@@ -56,6 +56,7 @@ import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsByCateg
 import static org.github.bademux.feedly.api.provider.FeedlyContract.FeedsCategories;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Tags;
+import static org.github.bademux.feedly.api.service.Utils.getFilesDir;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyCacheProvider extends ContentProvider {
@@ -256,7 +257,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     File file = null;
     if (c.moveToFirst()) {
-      file = new File(getCacheDir(getContext()) + "/" + c.getLong(0));
+      file = new File(Utils.getCacheDir(getContext()), c.getString(0));
     }
     c.close();
 
@@ -267,13 +268,6 @@ public class FeedlyCacheProvider extends ContentProvider {
                  + "' for URL " + uri);
     }
     return null;
-  }
-
-  public static final String getCacheDir(final Context context) {
-    if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-      throw new RuntimeException("External media is not mounted");
-    }
-    return context.getExternalCacheDir().getAbsolutePath();
   }
 
   /**
@@ -385,7 +379,7 @@ public class FeedlyCacheProvider extends ContentProvider {
     @Override
     public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
       Log.i(TAG, "Upgrading database; wiping app data");
-      FeedlyDbUtils.dropAll(db);
+      FeedlyDbUtils.dropAll(db, mContext);
       onCreate(db);
     }
 
@@ -394,16 +388,12 @@ public class FeedlyCacheProvider extends ContentProvider {
       onUpgrade(db, oldVersion, newVersion);
     }
 
-    protected final static String getFilesDir(Context context) {
-      if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-        throw new RuntimeException("External media is not mounted");
-      }
-      return context.getExternalFilesDir(null).getAbsolutePath();
+    public DatabaseHelper(final Context context) {
+      super(context, new File(getFilesDir(context), DB_NAME).getAbsolutePath(), null, VERSION);
+      this.mContext = context;
     }
 
-    public DatabaseHelper(final Context context) {
-      super(context, getFilesDir(context) + '/' + DB_NAME, null, VERSION);
-    }
+    private final Context mContext;
 
     private static final String DB_NAME = "feedly_cache.db";
 

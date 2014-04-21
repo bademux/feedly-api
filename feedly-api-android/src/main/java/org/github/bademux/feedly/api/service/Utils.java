@@ -26,8 +26,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.BatteryManager;
+import android.os.Environment;
 import android.util.Log;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -142,6 +144,40 @@ public final class Utils {
         is.close();
       }
     }
+  }
+
+  public final static File getFilesDir(Context context) {
+    if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+      throw new RuntimeException("External media is not mounted");
+    }
+    return context.getExternalFilesDir(null);
+  }
+
+  public static final File getCacheDir(final Context context) {
+    if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+      throw new RuntimeException("External media is not mounted");
+    }
+    return context.getExternalCacheDir();
+  }
+
+  public static boolean cleanDir(File dir) {
+    if (dir.isDirectory()) {
+      for (String children : dir.list()) {
+        new File(dir, children).delete();
+      }
+    }
+    return dir.delete(); // The directory is empty now and can be deleted.
+  }
+
+  public static boolean deleteDir(File dir) {
+    if (dir.isDirectory()) {
+      for (String children : dir.list()) {
+        if (!deleteDir(new File(dir, children))) {
+          return false;
+        }
+      }
+    }
+    return dir.delete(); // The directory is empty now and can be deleted.
   }
 
   public final static int BATTERY_LOW = 15;

@@ -25,6 +25,7 @@ import com.google.api.client.repackaged.com.google.common.base.Strings;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -35,6 +36,7 @@ import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.model.IdGenericJson;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.model.Tag;
+import org.github.bademux.feedly.api.service.Utils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -514,7 +516,7 @@ public final class FeedlyDbUtils {
                + EntriesFiles.TBL_NAME + "." + EntriesFiles.ENTRY_ID);
   }
 
-  public static void dropAll(@Nonnull final SQLiteDatabase db) {
+  public static void dropAll(@Nonnull final SQLiteDatabase db, final Context context) {
     drop(db, "index", "name NOT LIKE 'sqlite_autoindex_%'");
 
     //TODO: preserve order (relations)
@@ -530,6 +532,9 @@ public final class FeedlyDbUtils {
     db.execSQL("DROP TABLE IF EXISTS '" + EntriesFiles.TBL_NAME + "'");
 
     drop(db, "view", null);
+
+    //clean cache
+    Utils.cleanDir(Utils.getCacheDir(context));
   }
 
   public static void drop(final SQLiteDatabase db, final String type, final String whereClause) {

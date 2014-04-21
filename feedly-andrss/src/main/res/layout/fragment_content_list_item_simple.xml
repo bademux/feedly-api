@@ -23,18 +23,11 @@
               android:orientation="vertical">
 
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                 android:id="@+id/content_list_visual"
+                 android:scaleType="fitXY"
                  android:orientation="horizontal"
                  android:layout_width="match_parent"
                  android:layout_height="wrap_content">
-
-        <ImageView android:id="@+id/content_list_visual"
-                   android:layout_width="match_parent"
-                   android:layout_height="wrap_content"
-                   android:scaleType="fitXY"
-                   android:adjustViewBounds="true"
-                   android:src="@drawable/ic_launcher"
-                   android:contentDescription="@string/desc_content_list_thumbnail"/>
-
         <TextView android:id="@+id/content_list_title"
                   android:layout_width="match_parent"
                   android:layout_height="wrap_content"

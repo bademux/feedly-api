@@ -44,7 +44,7 @@ import android.net.Uri;
 import android.text.Html;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
@@ -97,12 +97,10 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
     view.setText(Html.fromHtml(text, imageGetter, null));
   }
 
-  protected void handleVisual(final ImageView view, final String source) {
-    Drawable d = imageGetter.getDrawable(source);
-    if (d == null) {
-      view.setVisibility(View.GONE);
-    } else {
-      view.setImageDrawable(d);
+  protected void handleVisual(final FrameLayout view, final String source) {
+    Drawable drawable = imageGetter.getDrawable(source);
+    if (drawable != null) {
+      view.setBackground(drawable);
     }
   }
 
@@ -129,7 +127,7 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
     public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
       switch (view.getId()) {
         case R.id.content_list_visual:
-          handleVisual((ImageView) view, cursor.getString(columnIndex)); return true;
+          handleVisual((FrameLayout) view, cursor.getString(columnIndex)); return true;
         case R.id.content_list_summary:
           handleSummary((TextView) view, cursor.getString(columnIndex)); return true;
         case R.id.content_list_meta_crawled:

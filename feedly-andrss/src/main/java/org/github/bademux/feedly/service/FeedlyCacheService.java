@@ -131,8 +131,6 @@ public class FeedlyCacheService extends IntentService {
                                           null, null, null, null);
     if (cursor.moveToFirst()) { //fetch latest
       request.setNewerThan(cursor.getLong(1));
-    } else { // nothing in database
-      request.setCount(MAX_ENTRIES_FIRST_TIME);
     }
     cursor.close();
 
@@ -142,6 +140,9 @@ public class FeedlyCacheService extends IntentService {
   private Collection<Entry> execute(final Feedly.Streams.Contents request) {
     final Collection<Entry> entries = new ArrayList<Entry>();
     do {
+      //TODO: for dev purposes
+      if (entries.size() > 20) { break; }
+
       try {
         EntriesResponse result = request.execute();
         request.setContinuation(result.getContinuation());
@@ -240,8 +241,6 @@ public class FeedlyCacheService extends IntentService {
   public FeedlyCacheService() { super(TAG); }
 
   private volatile FeedlyUtil mFeedlyUtil;
-
-  public final static Integer MAX_ENTRIES_FIRST_TIME = 20;
 
   public final static String ACTION_FETCH_SUBSCRIPTION =
       "org.github.bademux.feedly.api.service.Subscription";

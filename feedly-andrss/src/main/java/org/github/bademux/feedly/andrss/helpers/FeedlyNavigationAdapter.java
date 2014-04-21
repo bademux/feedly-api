@@ -42,7 +42,8 @@ import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.Conte
 public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements AsyncQueryListener {
 
   public void startQueryGroup() {
-    mQueryHandler.startQuery(tokenGroup, null, Categories.CONTENT_URI, GROUP, null, null, null);
+    mQueryHandler.startQuery(tokenGroup, null, Categories.CONTENT_URI, GROUP,
+                             null, null, Categories.LABEL);
   }
 
   @Override
@@ -50,7 +51,7 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     String id = getCategoryId(groupCursor);
     Uri.Builder builder = FeedsByCategory.CONTENT_URI.buildUpon().appendPath(id);
     mQueryHandler.startQuery(tokenChild, groupCursor.getPosition(), builder.build(),
-                             CHILD, null, null, null);
+                             CHILD, null, null, Feeds.TITLE);
     return null;
   }
 

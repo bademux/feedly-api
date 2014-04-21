@@ -68,12 +68,14 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
 
   public void startQueryOnCategory(String uri) {
     Uri.Builder builder = EntriesByCategory.CONTENT_URI.buildUpon().appendPath(uri);
-    mQueryHandler.startQuery(token, null, builder.build(), FROM, null, null, null);
+    mQueryHandler.startQuery(token, null, builder.build(), FROM,
+                             null, null, Entries.CRAWLED + " DESC");
   }
 
   public void startQueryOnFeed(String uri) {
     mQueryHandler.startQuery(token, null, Entries.CONTENT_URI, FROM,
-                             Entries.ORIGIN_STREAMID + "=?", new String[]{uri}, null);
+                             Entries.ORIGIN_STREAMID + "=?", new String[]{uri},
+                             Entries.CRAWLED + " DESC");
   }
 
   @Override

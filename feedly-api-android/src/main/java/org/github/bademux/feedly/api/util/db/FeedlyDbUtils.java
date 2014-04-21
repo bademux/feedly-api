@@ -259,8 +259,10 @@ public final class FeedlyDbUtils {
   };
 
   public static void processEntries(@Nonnull final ContentResolver contentResolver,
-                                    @Nonnull final Collection<Entry> inEntries) {
-
+                                    @Nullable final Collection<Entry> inEntries) {
+    if (inEntries == null || inEntries.isEmpty()) {
+      return;
+    }
     Set<ContentValues> feeds = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);

@@ -99,41 +99,44 @@ public class FeedlyCacheProvider extends ContentProvider {
     assert db != null;
     switch (URI_MATCHER.match(uri)) {
       case Code.ENTRY:
-        return db.query(Entries.TBL_NAME, projection, selection, selectionArgs, null, null, null);
+        return db.query(Entries.TBL_NAME, projection, selection, selectionArgs,
+                        null, null, Entries.CRAWLED);
       case Code.ENTRIES:
         return db.query(Entries.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
       case Code.ENTRIES_BY_TAG:
         return db.query(EntriesByTag.TBL_NAME,
                         merge(projection, "rowid as _id", EntriesByTag.TAG_ID),
-                        EntriesByTag.TAG_ID + "=?",
-                        new String[]{uri.getLastPathSegment()}, null, null, null);
+                        EntriesByTag.TAG_ID + "=?", new String[]{uri.getLastPathSegment()},
+                        null, null, sortOrder);
       case Code.ENTRIES_BY_CATEGORY:
         return db.query(EntriesByCategory.TBL_NAME,
                         merge(projection, "rowid as _id", EntriesByCategory.CATEGORY_ID),
                         EntriesByCategory.CATEGORY_ID + "=?",
-                        new String[]{uri.getLastPathSegment()}, null, null, null);
+                        new String[]{uri.getLastPathSegment()}, null, null, sortOrder);
       case Code.FEED:
-        return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs, null, null, null);
+        return db.query(Feeds.TBL_NAME, projection, selection, selectionArgs,
+                        null, null, Feeds.TITLE);
       case Code.FEEDS:
         return db.query(Feeds.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
-      case Code.FEEDS_EMPTY_FAVICON:
-        return db.query(Feeds.TBL_NAME, new String[]{Feeds.ID, Feeds.WEBSITE},
-                        Feeds.FAVICON + " IS NULL", null, null, null, null);
       case Code.FEEDS_BY_CATEGORY:
         return db.query(FeedsByCategory.TBL_NAME,
                         merge(projection, "rowid as _id", FeedsByCategory.CATEGORY_ID),
                         FeedsByCategory.CATEGORY_ID + "=?",
-                        new String[]{uri.getLastPathSegment()}, null, null, null);
+                        new String[]{uri.getLastPathSegment()}, null, null, sortOrder);
+      case Code.FEEDS_EMPTY_FAVICON:
+        return db.query(Feeds.TBL_NAME, new String[]{Feeds.ID, Feeds.WEBSITE},
+                        Feeds.FAVICON + " IS NULL", null, null, null, null);
       case Code.CATEGORY:
         return db.query(Categories.TBL_NAME, projection, selection, selectionArgs,
-                        null, null, null);
+                        null, null, Categories.LABEL);
       case Code.CATEGORIES:
         return db.query(Categories.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
       case Code.TAG:
-        return db.query(Tags.TBL_NAME, projection, selection, selectionArgs, null, null, null);
+        return db.query(Tags.TBL_NAME, projection, selection, selectionArgs,
+                        null, null, Tags.LABEL);
       case Code.TAGS:
         return db.query(Tags.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
@@ -261,7 +264,11 @@ public class FeedlyCacheProvider extends ContentProvider {
     if (path == null) {
       throw new FileNotFoundException("Column _data not found.");
     }
-    return ParcelFileDescriptor.open(new File(path), parseMode(mode));
+    File file = new File(path);
+    if(file.exists()){
+      return ParcelFileDescriptor.open(file, parseMode(mode));
+    }
+    return null;
   }
 
   protected Cursor getCursorForFile(final Uri uri) {

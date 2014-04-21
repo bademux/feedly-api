@@ -18,7 +18,6 @@
 
 package org.github.bademux.feedly.service;
 
-import com.google.api.client.repackaged.com.google.common.base.Strings;
 import com.google.api.client.util.IOUtils;
 
 import android.app.DownloadManager;
@@ -32,6 +31,7 @@ import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.model.EntriesResponse;
+import org.github.bademux.feedly.api.model.Entry;
 import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.model.Stream;
 import org.github.bademux.feedly.api.model.Subscription;
@@ -43,10 +43,14 @@ import org.github.bademux.feedly.provider.FeedlyCacheProvider;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static android.app.DownloadManager.Request;
+import static com.google.api.client.repackaged.com.google.common.base.Strings.isNullOrEmpty;
 import static org.github.bademux.feedly.api.model.Category.ALL;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Entries;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processEntries;
@@ -107,21 +111,47 @@ public class FeedlyCacheService extends IntentService {
     }
   }
 
-  protected void fetchEntries(final ContentResolver contentResolver, final String streamId)
-      throws IOException {
+  protected void fetchEntries(final ContentResolver contentResolver, final String streamId) {
+
     Feedly service = mFeedlyUtil.service();
-    Stream stream = Strings.isNullOrEmpty(streamId) ?
+    Stream stream = isNullOrEmpty(streamId) ?
                     service.newCategory(ALL) :
                     new Stream() {
                       @Override
                       public String getId() { return streamId; }
                     };
 
-    EntriesResponse result = service.streams().contents(stream).execute();
+    Feedly.Streams.Contents request = service.streams().contents(stream);
 
-    if (result != null) {
-      processEntries(contentResolver, result.items());
+    //check local db
+    Cursor cursor = contentResolver.query(Entries.CONTENT_URI,
+                                          new String[]{"MAX(" + Entries.CRAWLED + ")"},
+                                          null, null, null, null);
+    if (cursor.moveToFirst()) { //fetch latest
+      request.setNewerThan(cursor.getLong(1));
+    } else { // nothing in database
+      request.setCount(MAX_ENTRIES_FIRST_TIME);
     }
+    cursor.close();
+
+    processEntries(contentResolver, execute(request));
+  }
+
+  private Collection<Entry> execute(final Feedly.Streams.Contents request) {
+    final Collection<Entry> entries = new ArrayList<Entry>();
+    do {
+      try {
+        EntriesResponse result = request.execute();
+        request.setContinuation(result.getContinuation());
+        if (result != null && !result.isEmpty()) {
+          entries.addAll(result.items());
+        }
+      } catch (IOException e) {
+        Log.e(TAG, "unknown action", e);
+        request.setContinuation(null);
+      }
+    } while (!isNullOrEmpty(request.getContinuation()));
+    return entries;
   }
 
   /**
@@ -208,6 +238,8 @@ public class FeedlyCacheService extends IntentService {
   public FeedlyCacheService() { super(TAG); }
 
   private volatile FeedlyUtil mFeedlyUtil;
+
+  public final static Integer MAX_ENTRIES_FIRST_TIME = 20;
 
   public final static String ACTION_FETCH_SUBSCRIPTION =
       "org.github.bademux.feedly.api.service.Subscription";

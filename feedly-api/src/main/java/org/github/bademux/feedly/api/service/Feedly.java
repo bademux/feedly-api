@@ -1329,7 +1329,7 @@ public class Feedly extends AbstractClient {
     }
 
 
-    public Contents contents(Stream stream) throws IOException { return new Contents(stream); }
+    public Contents contents(Stream stream) { return new Contents(stream); }
 
     public class Contents extends Request<EntriesResponse> {
 

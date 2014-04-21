@@ -60,7 +60,9 @@ import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.merge;
 
 public class FeedlyCacheProvider extends ContentProvider {
 
-  public static final String NOTCACHED = "NOTCACHED";
+  public static final String FILES_NOT_CACHED = "notcached";
+
+  public static final String FEEDS_EMPTY_FAVICON = "feeds_empty_favicon";
 
   private static final UriMatcher URI_MATCHER = new UriMatcher(Code.AUTHORITY);
 
@@ -72,14 +74,16 @@ public class FeedlyCacheProvider extends ContentProvider {
     URI_MATCHER.addURI(AUTHORITY, EntriesFiles.TBL_NAME, Code.ENTRIES_FILES);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEED);
     URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME, Code.FEEDS);
+    URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/#", Code.FEEDS_EMPTY_FAVICON);
     URI_MATCHER.addURI(AUTHORITY, FeedsByCategory.TBL_NAME + "/*", Code.FEEDS_BY_CATEGORY);
-    URI_MATCHER.addURI(AUTHORITY, Categories.TBL_NAME + "/#", Code.CATEGORY);
+    URI_MATCHER.addURI(AUTHORITY, Feeds.TBL_NAME + "/" + FEEDS_EMPTY_FAVICON,
+                       Code.FEEDS_EMPTY_FAVICON);
     URI_MATCHER.addURI(AUTHORITY, Categories.TBL_NAME, Code.CATEGORIES);
     URI_MATCHER.addURI(AUTHORITY, FeedsCategories.TBL_NAME, Code.FEEDS_CATEGORIES);
     URI_MATCHER.addURI(AUTHORITY, EntriesTags.TBL_NAME, Code.ENTRIES_TAGS);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME + "/#", Code.TAG);
     URI_MATCHER.addURI(AUTHORITY, Tags.TBL_NAME, Code.TAGS);
-    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/" + NOTCACHED, Code.FILE_NOT_CACHED);
+    URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/" + FILES_NOT_CACHED, Code.FILE_NOT_CACHED);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/#", Code.FILE_BY_ID);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME + "/*", Code.FILE);
     URI_MATCHER.addURI(AUTHORITY, Files.TBL_NAME, Code.FILES);
@@ -114,6 +118,9 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.FEEDS:
         return db.query(Feeds.TBL_NAME, merge(projection, "rowid as _id"),
                         selection, selectionArgs, null, null, sortOrder);
+      case Code.FEEDS_EMPTY_FAVICON:
+        return db.query(Feeds.TBL_NAME, new String[]{Feeds.ID, Feeds.WEBSITE},
+                        Feeds.FAVICON + " IS NULL", null, null, null, null);
       case Code.FEEDS_BY_CATEGORY:
         return db.query(FeedsByCategory.TBL_NAME,
                         merge(projection, "rowid as _id", FeedsByCategory.CATEGORY_ID),
@@ -141,9 +148,9 @@ public class FeedlyCacheProvider extends ContentProvider {
                         Files.FILENAME + " IS NULL", null, null, null, null);
       case Code.AUTHORITY: return null;
       case UriMatcher.NO_MATCH:
-        throw new UnsupportedOperationException("Unmatched Uri");
+        throw new UnsupportedOperationException("Unmatched Uri: " + uri);
       default:
-        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+        throw new UnsupportedOperationException("Unsupported Uri: " + uri);
     }
   }
 
@@ -174,7 +181,7 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.ENTRIES_FILES:
         return db.insertWithOnConflict(EntriesFiles.TBL_NAME, null, values, CONFLICT_IGNORE);
       case UriMatcher.NO_MATCH:
-        throw new UnsupportedOperationException("Unmatched Uri");
+        throw new UnsupportedOperationException("Unmatched Uri code: " + uriCode);
       default:
         throw new UnsupportedOperationException("Unsupported Uri code: " + uriCode);
     }
@@ -201,9 +208,9 @@ public class FeedlyCacheProvider extends ContentProvider {
       case Code.ENTRIES_TAGS:
         return db.delete(EntriesTags.TBL_NAME, selection, selectionArgs);
       case UriMatcher.NO_MATCH:
-        throw new UnsupportedOperationException("Unmatched Uri");
+        throw new UnsupportedOperationException("Unmatched Uri: " + uri);
       default:
-        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+        throw new UnsupportedOperationException("Unsupported Uri: " + uri);
     }
   }
 
@@ -225,9 +232,9 @@ public class FeedlyCacheProvider extends ContentProvider {
         return db.update(Files.TBL_NAME, values, Files.URL + "=?",
                          new String[]{uri.getLastPathSegment()});
       case UriMatcher.NO_MATCH:
-        throw new UnsupportedOperationException("Unmatched Uri");
+        throw new UnsupportedOperationException("Unmatched Uri: " + uri);
       default:
-        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+        throw new UnsupportedOperationException("Unsupported Uri: " + uri);
     }
   }
 
@@ -264,7 +271,7 @@ public class FeedlyCacheProvider extends ContentProvider {
         return query(uri, new String[]{"('" + getCacheDir(getContext()) + "/' || rowid) as _data"},
                      null, null, null);
       default:
-        throw new UnsupportedOperationException("Unsupported Uri " + uri);
+        throw new UnsupportedOperationException("Unsupported Uri: " + uri);
     }
   }
 
@@ -406,7 +413,7 @@ public class FeedlyCacheProvider extends ContentProvider {
 
     private static final String DB_NAME = "feedly_cache.db";
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     static final String TAG = "DatabaseHelper";
   }
@@ -414,7 +421,7 @@ public class FeedlyCacheProvider extends ContentProvider {
   private interface Code {
 
     static final int AUTHORITY = 0;
-    static final int FEEDS = 100, FEED = 101, FEEDS_BY_CATEGORY = 102;
+    static final int FEEDS = 100, FEED = 101, FEEDS_BY_CATEGORY = 102, FEEDS_EMPTY_FAVICON = 103;
     static final int CATEGORIES = 200, CATEGORY = 201;
     static final int FEEDS_CATEGORIES = 300, ENTRIES_TAGS = 301;
     static final int TAGS = 400, TAG = 401;

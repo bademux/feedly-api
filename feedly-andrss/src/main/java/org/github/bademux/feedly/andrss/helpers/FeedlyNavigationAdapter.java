@@ -20,10 +20,12 @@ package org.github.bademux.feedly.andrss.helpers;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ExpandableListView;
+import android.widget.ImageView;
 import android.widget.SimpleCursorTreeAdapter;
 import android.widget.TextView;
 
@@ -67,26 +69,9 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     TextView textView = (TextView) view.findViewById(R.id.navigation_list_groupindicator);
     //set ExpandableListView for later use
     textView.setTag(parent);
-    textView.setOnClickListener(onClickListener);
+    textView.setOnClickListener(ON_CLICK_LISTENER);
     return view;
   }
-
-  private static final OnClickListener onClickListener = new OnClickListener() {
-    @Override
-    public void onClick(final View v) {
-      final ExpandableListView listView = (ExpandableListView) v.getTag();
-      final View listItem = (View) v.getParent();
-      //calculate group position
-      long pos = listView.getExpandableListPosition(listView.getPositionForView(listItem));
-      final int positionGroup = ExpandableListView.getPackedPositionGroup(pos);
-
-      if (listView.isGroupExpanded(positionGroup)) {
-        listView.collapseGroup(positionGroup);
-      } else {
-        listView.expandGroup(positionGroup);
-      }
-    }
-  };
 
   public final String getCategoryId(final int groupPosition) {
     return getCategoryId(getGroup(groupPosition));
@@ -109,9 +94,9 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     super(context, null,
           R.layout.fragment_navigation_list_group, GROUP,
           new int[]{R.id.navigation_list_groupindicator},
-          android.R.layout.simple_list_item_1, CHILD,
-          new int[]{android.R.id.text1});
-
+          R.layout.fragment_navigation_list_item, CHILD,
+          new int[]{R.id.navigation_list_item_favicon, R.id.navigation_list_item_name});
+    setViewBinder(viewBinder);
     mQueryHandler = queryHandler;
 
     mQueryHandler.addContentChangeListener(Categories.CONTENT_URI, new ContentChangeListener() {
@@ -127,7 +112,41 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
 
   private final int tokenGroup, tokenChild;
 
+  private final ViewBinder viewBinder = new ViewBinder() {
+    @Override
+    public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
+      switch (view.getId()) {
+        case R.id.navigation_list_item_favicon:
+          if (View.GONE == view.getVisibility()) {
+            byte[] img = cursor.getBlob(columnIndex);
+            ((ImageView) view).setImageBitmap(BitmapFactory.decodeByteArray(img, 0, img.length));
+            view.setVisibility(View.VISIBLE);
+          }
+          return true;
+        default:
+      }
+      return false;
+    }
+  };
+
   private static final String[] GROUP = new String[]{Categories.LABEL, Categories.ID};
 
-  private static final String[] CHILD = new String[]{Feeds.TITLE, Feeds.ID};
+  private static final String[] CHILD = new String[]{Feeds.FAVICON, Feeds.TITLE, Feeds.ID};
+
+  private static final OnClickListener ON_CLICK_LISTENER = new OnClickListener() {
+    @Override
+    public void onClick(final View v) {
+      final ExpandableListView listView = (ExpandableListView) v.getTag();
+      final View listItem = (View) v.getParent();
+      //calculate group position
+      long pos = listView.getExpandableListPosition(listView.getPositionForView(listItem));
+      final int positionGroup = ExpandableListView.getPackedPositionGroup(pos);
+
+      if (listView.isGroupExpanded(positionGroup)) {
+        listView.collapseGroup(positionGroup);
+      } else {
+        listView.expandGroup(positionGroup);
+      }
+    }
+  };
 }

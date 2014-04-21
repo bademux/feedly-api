@@ -285,16 +285,6 @@ public final class FeedlyDbUtils {
       Entry.Origin stream = entry.getOrigin();
       Feed feed = new Subscription(IdGenericJson.parse(stream.getStreamId()), stream.getTitle());
 
-      String faviconUrl = favicon(feed);
-
-      ContentValues feedCV = convert(feed);
-      feedCV.put(Feeds.FAVICON, faviconUrl);
-      feeds.add(feedCV);
-
-      ContentValues favicon = new ContentValues();
-      favicon.put(Files.URL, faviconUrl);
-      files.add(favicon);
-
       feeds.add(convert(feed));
 
       List<Category> cats = entry.getCategories();
@@ -349,18 +339,9 @@ public final class FeedlyDbUtils {
     List<ContentValues> feeds = new ArrayList<ContentValues>(inSubscriptions.size());
     Set<ContentValues> categories = new TreeSet<ContentValues>(ENTITY_CMP);
     Set<ContentValues> feedsCategories = new TreeSet<ContentValues>(FEEDS_CATEGORIES_CMP);
-    List<ContentValues> files = new ArrayList<ContentValues>(inSubscriptions.size());
 
     for (Subscription subscription : inSubscriptions) {
-      String faviconUrl = favicon(subscription);
-
-      ContentValues feedCV = convert(subscription);
-      feedCV.put(Feeds.FAVICON, faviconUrl);
-      feeds.add(feedCV);
-
-      ContentValues favicon = new ContentValues();
-      favicon.put(Files.URL, faviconUrl);
-      files.add(favicon);
+      feeds.add(convert(subscription));
 
       List<Category> cats = subscription.getCategories();
       if (cats == null) {
@@ -372,7 +353,6 @@ public final class FeedlyDbUtils {
       }
     }
 
-    bulkInsert(contentResolver, Files.CONTENT_URI, files);
     bulkInsert(contentResolver, Feeds.CONTENT_URI, feeds);
     bulkInsert(contentResolver, Categories.CONTENT_URI, categories);
     bulkInsert(contentResolver, FeedsCategories.CONTENT_URI, feedsCategories);
@@ -395,9 +375,7 @@ public final class FeedlyDbUtils {
                + Feeds.WEBSITE + " TEXT,"
                + Feeds.VELOCITY + " DOUBLE,"
                + Feeds.STATE + " TEXT, "
-               + Feeds.FAVICON + " TEXT, "
-               + "FOREIGN KEY(" + Feeds.FAVICON + ") REFERENCES "
-               + Files.TBL_NAME + "(" + Files.URL + ") ON UPDATE CASCADE)");
+               + Feeds.FAVICON + " BLOB)");
 
     db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.TITLE
                + " ON " + Feeds.TBL_NAME + "(" + Feeds.TITLE + ")");
@@ -405,8 +383,6 @@ public final class FeedlyDbUtils {
                + " ON " + Feeds.TBL_NAME + "(" + Feeds.SORTID + ")");
     db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.WEBSITE
                + " ON " + Feeds.TBL_NAME + "(" + Feeds.WEBSITE + ")");
-    db.execSQL("CREATE INDEX idx_" + Feeds.TBL_NAME + "_" + Feeds.FAVICON
-               + " ON " + Feeds.TBL_NAME + "(" + Feeds.FAVICON + ")");
 
     db.execSQL("CREATE TABLE IF NOT EXISTS " + Categories.TBL_NAME + "("
                + Categories.ID + " TEXT PRIMARY KEY NOT NULL,"
@@ -528,7 +504,7 @@ public final class FeedlyDbUtils {
                + " ON " + EntriesFiles.TBL_NAME + "(" + EntriesFiles.ENTRY_ID + ")");
 
     db.execSQL("CREATE INDEX idx_" + EntriesFiles.TBL_NAME + "_" + EntriesFiles.FILE_URL
-               + " ON " + EntriesFiles.FILE_URL + "(" + EntriesFiles.FILE_URL + ")");
+               + " ON " + EntriesFiles.TBL_NAME + "(" + EntriesFiles.FILE_URL + ")");
 
     db.execSQL("CREATE VIEW " + FilesByEntry.TBL_NAME + " AS "
                + "SELECT * FROM " + Entries.TBL_NAME + " INNER JOIN " + EntriesFiles.TBL_NAME
@@ -622,14 +598,6 @@ public final class FeedlyDbUtils {
     System.arraycopy(strings2, 0, tmpProjection, 0, strings2.length);
     System.arraycopy(strings1, 0, tmpProjection, strings2.length, strings1.length);
     return tmpProjection;
-  }
-
-  public static final String favicon(final Feed feed) {
-    String url = feed.getWebsite();
-    if (url == null) {
-      url = feed.getUrl();
-    }
-    return FAVICON_TPL + Uri.parse(url).getHost();
   }
 
   public static final String FAVICON_TPL = "http://plus.google.com/_/favicon?alt=feed&domain=";

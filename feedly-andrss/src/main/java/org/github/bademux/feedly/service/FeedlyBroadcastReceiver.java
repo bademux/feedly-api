@@ -24,10 +24,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
 
+import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.service.ServiceManager;
 
+import static android.app.DownloadManager.COLUMN_DESCRIPTION;
+import static android.app.DownloadManager.COLUMN_LOCAL_FILENAME;
+import static android.app.DownloadManager.COLUMN_LOCAL_URI;
+import static android.app.DownloadManager.COLUMN_MEDIA_TYPE;
+import static android.app.DownloadManager.COLUMN_URI;
 import static android.content.Context.DOWNLOAD_SERVICE;
+import static org.github.bademux.feedly.service.FeedlyCacheService.ACTION_DOWNLOAD_COMPLETED;
+import static org.github.bademux.feedly.service.FeedlyCacheService.ACTION_DOWNLOAD_COMPLETED_FAVICON;
 
 public class FeedlyBroadcastReceiver extends BroadcastReceiver {
 
@@ -50,10 +59,17 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
       if (c.moveToFirst()) {
         int status = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
         if (status == DownloadManager.STATUS_SUCCESSFUL) {
-          String uri = c.getString(c.getColumnIndex(DownloadManager.COLUMN_URI));
-          String filename = c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_FILENAME));
-          String mime = c.getString(c.getColumnIndex(DownloadManager.COLUMN_MEDIA_TYPE));
-          context.startService(createIntentDlComplete(context, uri, filename, mime));
+
+          String desc = c.getString(c.getColumnIndex(COLUMN_DESCRIPTION));
+          boolean type = desc != null && desc.startsWith(Feed.PREFIX);
+          String actionDl = type ? ACTION_DOWNLOAD_COMPLETED_FAVICON : ACTION_DOWNLOAD_COMPLETED;
+
+          Intent intentDl = new Intent(actionDl, null, context, FeedlyCacheService.class);
+          intentDl.putExtras(createBundle(c.getString(c.getColumnIndex(COLUMN_URI)),
+                                          c.getString(c.getColumnIndex(COLUMN_LOCAL_FILENAME)),
+                                          c.getString(c.getColumnIndex(COLUMN_MEDIA_TYPE)),
+                                          c.getString(c.getColumnIndex(COLUMN_LOCAL_URI)), desc));
+          context.startService(intentDl);
         }
       }
     } else {
@@ -61,14 +77,15 @@ public class FeedlyBroadcastReceiver extends BroadcastReceiver {
     }
   }
 
-  private static Intent createIntentDlComplete(final Context context, final String url,
-                                               final String filename, final String mime) {
-    Intent intent = new Intent(FeedlyCacheService.ACTION_DOWNLOAD_COMPLETED, null,
-                               context, FeedlyCacheService.class);
-    intent.putExtra(FeedlyCacheService.EXTRA_URL, url);
-    intent.putExtra(FeedlyCacheService.EXTRA_FILENAME, filename);
-    intent.putExtra(FeedlyCacheService.EXTRA_MIME, mime);
-    return intent;
+  private static Bundle createBundle(final String url, final String filename, final String mime,
+                                     final String localUri, final String feedId) {
+    Bundle bundle = new Bundle(5);
+    bundle.putString(FeedlyCacheService.EXTRA_URL, url);
+    bundle.putString(FeedlyCacheService.EXTRA_FILENAME, filename);
+    bundle.putString(FeedlyCacheService.EXTRA_MIME, mime);
+    bundle.putString(FeedlyCacheService.EXTRA_LOCAL_URI, localUri);
+    bundle.putString(FeedlyCacheService.EXTRA_FEED_ID, feedId);
+    return bundle;
   }
 
   public class FeedlyServiceManager extends ServiceManager {

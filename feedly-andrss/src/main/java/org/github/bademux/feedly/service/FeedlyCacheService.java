@@ -18,6 +18,8 @@
 
 package org.github.bademux.feedly.service;
 
+import com.google.api.client.util.IOUtils;
+
 import android.app.DownloadManager;
 import android.app.IntentService;
 import android.content.ContentResolver;
@@ -29,17 +31,21 @@ import android.util.Log;
 
 import org.github.bademux.feedly.andrss.R;
 import org.github.bademux.feedly.api.model.EntriesResponse;
+import org.github.bademux.feedly.api.model.Feed;
 import org.github.bademux.feedly.api.model.Subscription;
 import org.github.bademux.feedly.api.service.Feedly;
 import org.github.bademux.feedly.api.service.ServiceManager;
 import org.github.bademux.feedly.api.util.FeedlyUtil;
+import org.github.bademux.feedly.api.util.db.FeedlyDbUtils;
 import org.github.bademux.feedly.provider.FeedlyCacheProvider;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
 import static android.app.DownloadManager.Request;
 import static org.github.bademux.feedly.api.model.Category.ALL;
+import static org.github.bademux.feedly.api.provider.FeedlyContract.Feeds;
 import static org.github.bademux.feedly.api.provider.FeedlyContract.Files;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processEntries;
 import static org.github.bademux.feedly.api.util.db.FeedlyDbUtils.processSubscriptions;
@@ -80,8 +86,12 @@ public class FeedlyCacheService extends IntentService {
       case ACTION_FETCH_SUBSCRIPTION: fetchSubscriptions(contentResolver);
       case ServiceManager.ACTION_REFRESH:
       case ACTION_FETCH_ENTRIES: fetchEntries(contentResolver);
-      case ACTION_DOWNLOAD: download(contentResolver); break;
+      case ACTION_DOWNLOAD:
+        downloadFiles(contentResolver);
+        dowanloadFavicons(contentResolver);
+        break;
       case ACTION_DOWNLOAD_COMPLETED: completeDownload(intent, contentResolver); break;
+      case ACTION_DOWNLOAD_COMPLETED_FAVICON: completeDownloadFav(intent, contentResolver); break;
       default:
         Log.d(TAG, "unknown action" + action);
     }
@@ -103,14 +113,42 @@ public class FeedlyCacheService extends IntentService {
     }
   }
 
-  protected void download(final ContentResolver contentResolver) {
-    //Get all files that were not cached
-    Uri notcachedUri = Files.CONTENT_URI.buildUpon()
-                                        .appendPath(FeedlyCacheProvider.NOTCACHED).build();
+  /**
+   * Get all files that were not cached
+   */
+  private void dowanloadFavicons(final ContentResolver contentResolver) {
+    Uri notcachedUri = Feeds.CONTENT_URI.buildUpon()
+                                        .appendPath(FeedlyCacheProvider.FEEDS_EMPTY_FAVICON)
+                                        .build();
     Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
     if (c.moveToFirst()) {
       DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-      String cacheDir = "file://" + FeedlyCacheProvider.getCacheDir(getApplicationContext()) + '/';
+      do {
+        String feedId = c.getString(c.getColumnIndex(Feeds.ID));
+        String website = c.getString(c.getColumnIndex(Feeds.WEBSITE));
+        //see org.github.bademux.feedly.api.model.Feed#getUrl() for more details
+        String url = website == null ? feedId.substring(Feed.PREFIX.length() + 1) : website;
+        Uri uri = Uri.parse(FeedlyDbUtils.FAVICON_TPL + Uri.parse(url).getHost());
+
+        dm.enqueue(new Request(uri)
+                       //.setDestinationUri(Uri.fromFile(getCacheDir()))
+                       .setVisibleInDownloadsUi(false).setDescription(feedId)
+                       .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
+      } while (c.moveToNext());
+    }
+  }
+
+  /**
+   * update favicons
+   */
+  private void downloadFiles(final ContentResolver contentResolver) {
+    Uri notcachedUri = Files.CONTENT_URI.buildUpon()
+                                        .appendPath(FeedlyCacheProvider.FILES_NOT_CACHED).build();
+    Cursor c = contentResolver.query(notcachedUri, null, null, null, null);
+    if (c.moveToFirst()) {
+      DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+      String cacheDir =
+          "file://" + FeedlyCacheProvider.getCacheDir(getApplicationContext()) + '/';
       do {
         Uri srcUri = Uri.parse(c.getString(c.getColumnIndex(Files.URL)));
         String fileId = String.valueOf(c.getLong(c.getColumnIndex(Files.ID)));
@@ -130,6 +168,32 @@ public class FeedlyCacheService extends IntentService {
     contentResolver.update(updateUri, values, null, null);
   }
 
+  protected void completeDownloadFav(final Intent intent, final ContentResolver contentResolver) {
+    Uri faviconUri = Uri.parse(intent.getStringExtra(FeedlyCacheService.EXTRA_LOCAL_URI));
+    String feedId = intent.getStringExtra(FeedlyCacheService.EXTRA_FEED_ID);
+    try {
+      ContentValues values = new ContentValues(1);
+      values.put(Feeds.FAVICON, readAll(contentResolver, faviconUri));
+      contentResolver.update(Feeds.CONTENT_URI, values, Feeds.ID + "=?", new String[]{feedId});
+    } catch (IOException e) {
+      Log.e(TAG, "Can't copy", e);
+    }
+  }
+
+  protected static byte[] readAll(final ContentResolver contentResolver, final Uri src)
+      throws IOException {
+    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+    try {
+      IOUtils.copy(contentResolver.openInputStream(src), stream, true);
+      return stream.toByteArray();
+    } finally {
+      if (stream != null) {
+        stream.close();
+      }
+    }
+  }
+
+
   public FeedlyCacheService() { super(TAG); }
 
   private volatile FeedlyUtil mFeedlyUtil;
@@ -141,6 +205,9 @@ public class FeedlyCacheService extends IntentService {
 
   protected final static String ACTION_DOWNLOAD = "org.github.bademux.feedly.api.service.Download";
 
+  protected final static String ACTION_DOWNLOAD_COMPLETED_FAVICON =
+      "org.github.bademux.feedly.api.service.DownloadCompletedFavicon";
+
   protected final static String ACTION_DOWNLOAD_COMPLETED =
       "org.github.bademux.feedly.api.service.DownloadCompleted";
 
@@ -150,6 +217,12 @@ public class FeedlyCacheService extends IntentService {
 
   protected static final String EXTRA_FILENAME =
       "org.github.bademux.feedly.api.service.EXTRA_FILENAME";
+
+  protected final static String EXTRA_LOCAL_URI =
+      "org.github.bademux.feedly.api.service.EXTRA_LOCAL_URI";
+
+  protected final static String EXTRA_FEED_ID =
+      "org.github.bademux.feedly.api.service.EXTRA_FEED_ID";
 
   static final String TAG = "FeedlyCacheService";
 }

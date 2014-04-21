@@ -66,16 +66,6 @@ import static org.github.bademux.feedly.api.util.db.BackgroundQueryHandler.Async
 
 public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQueryListener {
 
-  public FeedlyContentAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
-    //The constructor does not take a Cursor - avoiding querying the db on the main thread.
-    super(context, R.layout.fragment_content_list_item_simple, null, FROM, TO, 0);
-    mDateFormat = android.text.format.DateFormat.getDateFormat(context);
-    setViewBinder(createBinder());
-    mQueryHandler = queryHandler;
-    mContext = context;
-    token = mQueryHandler.addQueryListener(this);
-  }
-
   public void startQueryOnCategory(String uri) {
     Uri.Builder builder = EntriesByCategory.CONTENT_URI.buildUpon().appendPath(uri);
     mQueryHandler.startQuery(token, null, builder.build(), FROM, null, null, null);
@@ -89,24 +79,6 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   @Override
   public void onQueryComplete(final int token, final Object cookie, final Cursor cursor) {
     changeCursor(cursor);
-  }
-
-  public ViewBinder createBinder() {
-    return new ViewBinder() {
-      @Override
-      public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
-        switch (view.getId()) {
-          case R.id.content_list_visual:
-            handleVisual((ImageView) view, cursor.getString(columnIndex)); return true;
-          case R.id.content_list_summary:
-            handleSummary((TextView) view, cursor.getString(columnIndex)); return true;
-          case R.id.content_list_meta_crawled:
-            handleCrawled((TextView) view, cursor.getLong(columnIndex)); return true;
-          default:
-        }
-        return false;
-      }
-    };
   }
 
   protected void handleCrawled(final TextView view, final Long timestamp) {
@@ -134,6 +106,15 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
     }
   }
 
+  public FeedlyContentAdapter(final Context context, final BackgroundQueryHandler queryHandler) {
+    //The constructor does not take a Cursor - avoiding querying the db on the main thread.
+    super(context, R.layout.fragment_content_list_item_simple, null, FROM, TO, 0);
+    mDateFormat = android.text.format.DateFormat.getDateFormat(context);
+    setViewBinder(viewBinder);
+    mQueryHandler = queryHandler;
+    mContext = context;
+    token = mQueryHandler.addQueryListener(this);
+  }
 
   private final BackgroundQueryHandler mQueryHandler;
 
@@ -142,6 +123,22 @@ public class FeedlyContentAdapter extends SimpleCursorAdapter implements AsyncQu
   private final Context mContext;
 
   private int token;
+
+  private final ViewBinder viewBinder = new ViewBinder() {
+    @Override
+    public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
+      switch (view.getId()) {
+        case R.id.content_list_visual:
+          handleVisual((ImageView) view, cursor.getString(columnIndex)); return true;
+        case R.id.content_list_summary:
+          handleSummary((TextView) view, cursor.getString(columnIndex)); return true;
+        case R.id.content_list_meta_crawled:
+          handleCrawled((TextView) view, cursor.getLong(columnIndex)); return true;
+        default:
+      }
+      return false;
+    }
+  };
 
   private final Html.ImageGetter imageGetter = new Html.ImageGetter() {
     @Override

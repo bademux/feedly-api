@@ -86,10 +86,7 @@ public class FeedlyCacheService extends IntentService {
       case ACTION_FETCH_SUBSCRIPTION: fetchSubscriptions(contentResolver);
       case ServiceManager.ACTION_REFRESH:
       case ACTION_FETCH_ENTRIES: fetchEntries(contentResolver);
-      case ACTION_DOWNLOAD:
-        downloadFiles(contentResolver);
-        downloadFavicon(contentResolver);
-        break;
+      case ACTION_DOWNLOAD: downloadFiles(contentResolver); downloadFavicon(contentResolver); break;
       case ACTION_DOWNLOAD_COMPLETED: completeDownload(intent, contentResolver); break;
       case ACTION_DOWNLOAD_COMPLETED_FAVICON: completeDownloadFav(intent, contentResolver); break;
       default:

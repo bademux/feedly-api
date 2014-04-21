@@ -66,7 +66,7 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
   @Override
   public View newGroupView(Context context, Cursor cursor, boolean isExpanded, ViewGroup parent) {
     final View view = super.newGroupView(context, cursor, isExpanded, parent);
-    TextView textView = (TextView) view.findViewById(R.id.navigation_list_groupindicator);
+    TextView textView = (TextView) view.findViewById(R.id.navigation_list_group_indicator);
     //set ExpandableListView for later use
     textView.setTag(parent);
     textView.setOnClickListener(ON_CLICK_LISTENER);
@@ -93,9 +93,9 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     //The constructor does not take a Cursor - avoiding querying the db on the main thread.
     super(context, null,
           R.layout.fragment_navigation_list_group, GROUP,
-          new int[]{R.id.navigation_list_groupindicator},
+          new int[]{R.id.navigation_list_group_title},
           R.layout.fragment_navigation_list_item, CHILD,
-          new int[]{R.id.navigation_list_item_favicon, R.id.navigation_list_item_name});
+          new int[]{R.id.navigation_list_item_favicon, R.id.navigation_list_item_title});
     setViewBinder(viewBinder);
     mQueryHandler = queryHandler;
 

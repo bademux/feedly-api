@@ -29,7 +29,7 @@
                android:scaleType="centerInside"
                android:visibility="gone"/>
 
-    <TextView android:id="@+id/navigation_list_item_name"
+    <TextView android:id="@+id/navigation_list_item_title"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:textAppearance="?android:attr/textAppearanceListItemSmall"

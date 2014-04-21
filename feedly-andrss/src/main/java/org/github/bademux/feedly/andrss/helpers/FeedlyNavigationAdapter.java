@@ -118,11 +118,9 @@ public class FeedlyNavigationAdapter extends SimpleCursorTreeAdapter implements 
     public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
       switch (view.getId()) {
         case R.id.navigation_list_item_favicon:
-          if (View.GONE == view.getVisibility()) {
-            byte[] img = cursor.getBlob(columnIndex);
-            ((ImageView) view).setImageBitmap(BitmapFactory.decodeByteArray(img, 0, img.length));
-            view.setVisibility(View.VISIBLE);
-          }
+          byte[] img = cursor.getBlob(columnIndex);
+          ((ImageView) view).setImageBitmap(BitmapFactory.decodeByteArray(img, 0, img.length));
+          view.setVisibility(View.VISIBLE);
           return true;
         default:
       }

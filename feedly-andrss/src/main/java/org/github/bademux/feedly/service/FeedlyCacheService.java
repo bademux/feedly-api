@@ -175,10 +175,8 @@ public class FeedlyCacheService extends IntentService {
         String url = website == null ? feedId.substring(Feed.PREFIX.length() + 1) : website;
         Uri uri = Uri.parse(FeedlyDbUtils.FAVICON_TPL + Uri.parse(url).getHost());
 
-        dm.enqueue(new Request(uri)
-                       //.setDestinationUri(Uri.fromFile(getCacheDir()))
-                       .setVisibleInDownloadsUi(false).setDescription(feedId)
-                       .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
+        dm.enqueue(new Request(uri).setVisibleInDownloadsUi(false).setDescription(feedId)
+                                   .setNotificationVisibility(Request.VISIBILITY_HIDDEN));
       } while (c.moveToNext());
     }
   }

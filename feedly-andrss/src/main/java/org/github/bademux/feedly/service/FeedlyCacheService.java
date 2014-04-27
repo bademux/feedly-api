@@ -129,8 +129,10 @@ public class FeedlyCacheService extends IntentService {
     Cursor cursor = contentResolver.query(Entries.CONTENT_URI,
                                           new String[]{"MAX(" + Entries.CRAWLED + ")"},
                                           null, null, null, null);
-    if (cursor.moveToFirst()) { //fetch latest
+    if (cursor.moveToFirst()) { // fetch latest
       request.setNewerThan(cursor.getLong(1) + 1);
+    } else { // first run
+      request.setUnreadOnly(Boolean.TRUE);
     }
     cursor.close();
 
@@ -140,8 +142,6 @@ public class FeedlyCacheService extends IntentService {
   private Collection<Entry> execute(final Feedly.Streams.Contents request) {
     final Collection<Entry> entriesCache = new ArrayList<Entry>();
     do {
-      //TODO: for dev purposes
-      if (entriesCache.size() > 20) { break; }
 
       try {
         EntriesResponse result = request.execute();

@@ -1,4 +1,4 @@
-Feedly Java API
+Feedly Java API (Abandoned)
 ==========
 
 The API Lib is highly inspired and based on Google API libs.
